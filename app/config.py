@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     app_name: str = "Binfrix API"
+    app_port: int = 8097
     api_prefix: str = "/api/v1"
     secret_key: str = "binfrix-dev-secret-change-in-production"
     algorithm: str = "HS256"

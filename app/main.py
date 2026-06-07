@@ -68,3 +68,9 @@ app.include_router(store.router, prefix=api_prefix)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": settings.app_name}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.app_port, reload=True)
