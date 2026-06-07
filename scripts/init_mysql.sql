@@ -1,0 +1,6 @@
+-- Usa full_mysql.sql (recomendado):
+--   mysql -u root -p < scripts/full_mysql.sql
+--
+-- O por partes:
+--   mysql -u root -p < scripts/schema_mysql.sql
+--   mysql -u root -p < scripts/seed_mysql.sql
