@@ -1,11 +1,17 @@
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="utf-8",
+    )
 
     app_name: str = "Binfrix API"
     app_port: int = 8097
@@ -22,8 +28,8 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     mysql_host: str = "127.0.0.1"
-    mysql_port: int = 3306
-    mysql_user: str = "root"
+    mysql_port: int = 3307
+    mysql_user: str = "binfrix"
     mysql_password: str = ""
     mysql_database: str = "binfrix"
 

@@ -37,11 +37,13 @@ O en MySQL Workbench / phpMyAdmin: abre y ejecuta `scripts/full_mysql.sql`.
 
 ```env
 MYSQL_HOST=127.0.0.1
-MYSQL_PORT=3306
-MYSQL_USER=root
+MYSQL_PORT=3307
+MYSQL_USER=binfrix
 MYSQL_PASSWORD=tu_password
 MYSQL_DATABASE=binfrix
 ```
+
+En el servidor (`/var/www/api.binfrix.io/public_html/`) crea el archivo `.env` con las credenciales reales de MySQL. Sin ese archivo la API intenta conectar como `root` y falla con error 1698.
 
 3. Al arrancar la API se crean las tablas y el seed demo automáticamente.
 
@@ -151,7 +153,7 @@ SECRET_KEY=change-me-to-a-random-secret-key
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 MYSQL_HOST=127.0.0.1
-MYSQL_PORT=3306
+MYSQL_PORT=3307
 MYSQL_USER=root
 MYSQL_PASSWORD=tu_password
 MYSQL_DATABASE=binfrix
@@ -160,7 +162,7 @@ MYSQL_DATABASE=binfrix
 Alternativa con URL completa:
 
 ```env
-DATABASE_URL=mysql+pymysql://root:tu_password@127.0.0.1:3306/binfrix?charset=utf8mb4
+DATABASE_URL=mysql+pymysql://binfrix:tu_password@127.0.0.1:3307/binfrix?charset=utf8mb4
 ```
 
 ## Estructura
