@@ -7,7 +7,7 @@ from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import TenantSummary
-from app.schemas.tenant import TenantCreate, TenantOut, TenantUserCreate, TenantUserOut
+from app.schemas.tenant import TenantCreate, TenantOut, TenantUserCreate, TenantUserOut, TenantUsersPageOut
 from app.services.tenant_service import TenantService
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
@@ -54,9 +54,9 @@ def add_tenant_user(
         raise_http(exc)
 
 
-@router.get("/users", response_model=list[TenantUserOut])
+@router.get("/users", response_model=TenantUsersPageOut)
 def list_tenant_users(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> list[TenantUserOut]:
-    return _service(db).list_tenant_users(ctx.tenant.id)
+) -> TenantUsersPageOut:
+    return _service(db).list_tenant_users_page(ctx)

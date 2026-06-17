@@ -51,7 +51,6 @@ INSERT INTO platform_products (id, name, description, is_active) VALUES
 ('ecommerce-b2c',     'Ecommerce B2C',           'Tienda en línea para venta al consumidor final.', 1),
 ('pagos',             'Pagos',                   'Pasarelas de pago, checkout y conciliación de transacciones.', 1),
 ('mantencion',        'Mantención',              'Soporte técnico, respaldos y monitoreo.', 1),
-('redes-sociales',    'Redes Sociales',          'Gestión de perfiles y calendario editorial.', 1),
 ('ventas-whatsapp',   'Ventas por WhatsApp',     'Canal comercial con pedidos y seguimiento.', 1);
 
 INSERT INTO tenant_licenses (id, tenant_id, platform_product_id, status, plan, starts_at, ends_at, max_users, created_at) VALUES

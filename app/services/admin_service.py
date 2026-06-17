@@ -6,13 +6,23 @@ from app.models.catalog import CatalogProduct
 from app.models.customer import Customer
 from app.models.license import TenantLicense
 from app.models.platform_product import PlatformProduct
+from app.models.role import Role
 from app.models.tenant import Tenant, TenantMembership
+from app.models.user import User
+from app.core.security import get_password_hash
+from app.core.roles import ROLE_CLIENT_1
 from app.schemas.dashboard import ActivityOut, DashboardOut, StatOut
 from app.schemas.platform_admin import (
+    PlatformClientCreate,
     PlatformClientOut,
     PlatformLicenseCreate,
     PlatformLicenseOut,
     PlatformLicenseUpdate,
+)
+from app.utils.license_plans import (
+    PRINCIPAL_MEMBERSHIP_ROLE,
+    list_plan_definitions,
+    resolve_plan_and_max_users,
 )
 from app.services.base import BaseService
 from app.utils.catalog import get_display_price, get_total_stock, is_variable_product
@@ -173,6 +183,52 @@ class PlatformAdminService(BaseService):
             )
         return results
 
+    def list_plans(self) -> list[dict[str, str | int]]:
+        return list_plan_definitions()
+
+    def create_client(self, payload: PlatformClientCreate) -> PlatformClientOut:
+        if self.db.query(Tenant).filter(Tenant.slug == payload.slug).first():
+            raise AppError("El slug ya está en uso")
+        if self.db.query(User).filter(User.email == payload.principal_email.strip().lower()).first():
+            raise AppError("El correo del usuario principal ya está registrado")
+
+        client_role = self.db.query(Role).filter(Role.slug == ROLE_CLIENT_1).first()
+        if client_role is None:
+            raise AppError("Rol de cliente no configurado")
+
+        tenant = Tenant(name=payload.name.strip(), slug=payload.slug.strip(), status="active")
+        self.db.add(tenant)
+        self.db.flush()
+
+        principal = User(
+            email=payload.principal_email.strip().lower(),
+            name=payload.principal_name.strip(),
+            password_hash=get_password_hash(payload.principal_password),
+            role_id=client_role.id,
+        )
+        self.db.add(principal)
+        self.db.flush()
+
+        self.db.add(
+            TenantMembership(
+                tenant_id=tenant.id,
+                user_id=principal.id,
+                role=PRINCIPAL_MEMBERSHIP_ROLE,
+            )
+        )
+        self.commit()
+        self.db.refresh(tenant)
+
+        return PlatformClientOut(
+            id=tenant.id,
+            name=tenant.name,
+            slug=tenant.slug,
+            contact=principal.email,
+            status=tenant.status,
+            licenses_count=0,
+            created_at=tenant.created_at.date() if tenant.created_at else None,
+        )
+
     def list_all_licenses(self) -> list[PlatformLicenseOut]:
         rows = (
             self.db.query(TenantLicense)
@@ -219,14 +275,16 @@ class PlatformAdminService(BaseService):
         if existing:
             raise AppError("Ya existe licencia para este cliente y producto")
 
+        plan, max_users = resolve_plan_and_max_users(payload.plan, payload.max_users)
+
         license_row = TenantLicense(
             tenant_id=payload.tenant_id,
             platform_product_id=payload.platform_product_id,
             status=payload.status,
-            plan=payload.plan,
+            plan=plan,
             starts_at=payload.starts_at,
             ends_at=payload.ends_at,
-            max_users=payload.max_users,
+            max_users=max_users,
         )
         self.db.add(license_row)
         self.commit()
@@ -266,7 +324,16 @@ class PlatformAdminService(BaseService):
         if license_row is None:
             raise NotFoundError("Licencia no encontrada")
 
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        data = payload.model_dump(exclude_unset=True)
+        if "plan" in data or "max_users" in data:
+            plan, max_users = resolve_plan_and_max_users(
+                data.get("plan", license_row.plan),
+                data.get("max_users", license_row.max_users),
+            )
+            data["plan"] = plan
+            data["max_users"] = max_users
+
+        for field, value in data.items():
             setattr(license_row, field, value)
 
         self.commit()

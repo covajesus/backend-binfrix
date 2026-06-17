@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PlatformClientOut(BaseModel):
@@ -11,6 +11,21 @@ class PlatformClientOut(BaseModel):
     status: str
     licenses_count: int
     created_at: date | None = None
+
+
+class PlatformClientCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=255)
+    slug: str = Field(min_length=2, max_length=100, pattern=r"^[a-z0-9-]+$")
+    principal_name: str = Field(min_length=2, max_length=255)
+    principal_email: str = Field(min_length=3, max_length=255)
+    principal_password: str = Field(min_length=6, max_length=128)
+
+
+class PlatformPlanOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    max_users: int
 
 
 class PlatformLicenseOut(BaseModel):

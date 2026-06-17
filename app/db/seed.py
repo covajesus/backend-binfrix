@@ -44,11 +44,14 @@ PLATFORM_PRODUCTS = [
     ("dynamic-landing", "Dynamic Landing Page", "Landings dinámicas para campañas y conversión."),
     ("ecommerce-b2b", "Ecommerce B2B", "Portal mayorista con intranet y presupuestos."),
     ("ecommerce-b2c", "Ecommerce B2C", "Tienda en línea para venta al consumidor final."),
-    ("pagos", "Pagos", "Pasarelas de pago, checkout y conciliación de transacciones."),
     ("mantencion", "Mantención", "Soporte técnico, respaldos y monitoreo."),
-    ("redes-sociales", "Redes Sociales", "Gestión de perfiles y calendario editorial."),
     ("ventas-whatsapp", "Ventas por WhatsApp", "Canal comercial con pedidos y seguimiento."),
 ]
+
+RETIRED_PLATFORM_PRODUCT_IDS = ("pagos", "redes-sociales")
+
+DEMO_TENANT_SLUG = "tienda-demo"
+DEMO_TENANT_LICENSE_PRODUCTS = ("ecommerce-b2c",)
 
 
 def _demo_sliders(tenant_id: str) -> list[Slider]:
@@ -487,6 +490,59 @@ def seed_demo_business_data_if_empty(db: Session) -> None:
     db.commit()
 
 
+def repair_demo_tenant_licenses(db: Session) -> None:
+    """Demo tenant: solo ecommerce-b2c. Productos retirados no son servicios SaaS activos."""
+    for product_id in RETIRED_PLATFORM_PRODUCT_IDS:
+        retired = db.get(PlatformProduct, product_id)
+        if retired is not None:
+            retired.is_active = False
+        db.query(TenantLicense).filter(
+            TenantLicense.platform_product_id == product_id
+        ).delete(synchronize_session=False)
+
+    tenant = db.query(Tenant).filter(Tenant.slug == DEMO_TENANT_SLUG).first()
+    if tenant is None:
+        db.commit()
+        return
+
+    allowed = set(DEMO_TENANT_LICENSE_PRODUCTS)
+    licenses = (
+        db.query(TenantLicense)
+        .filter(TenantLicense.tenant_id == tenant.id)
+        .all()
+    )
+    for license_row in licenses:
+        if license_row.platform_product_id not in allowed:
+            db.delete(license_row)
+
+    existing_b2c = (
+        db.query(TenantLicense)
+        .filter(
+            TenantLicense.tenant_id == tenant.id,
+            TenantLicense.platform_product_id == "ecommerce-b2c",
+        )
+        .first()
+    )
+    if existing_b2c is None:
+        db.add(
+            TenantLicense(
+                tenant_id=tenant.id,
+                platform_product_id="ecommerce-b2c",
+                status="active",
+                plan="standard",
+                starts_at=date(2025, 1, 1),
+                ends_at=None,
+                max_users=1,
+            )
+        )
+    else:
+        existing_b2c.status = "active"
+        existing_b2c.plan = "standard"
+        existing_b2c.max_users = 1
+
+    db.commit()
+
+
 def seed_database(db: Session) -> None:
     ensure_category_image_column(db)
     seed_demo_sliders_if_empty(db)
@@ -498,6 +554,7 @@ def seed_database(db: Session) -> None:
     seed_demo_store_settings_if_empty(db)
     repair_demo_customer_portal_access(db)
     seed_demo_business_data_if_empty(db)
+    repair_demo_tenant_licenses(db)
     if db.query(User).first():
         return
 
@@ -552,7 +609,7 @@ def seed_database(db: Session) -> None:
             )
         )
 
-    for product_id in ("ecommerce-b2c", "ecommerce-b2b", "pagos"):
+    for product_id in DEMO_TENANT_LICENSE_PRODUCTS:
         db.add(
             TenantLicense(
                 tenant_id=tenant.id,
@@ -560,7 +617,7 @@ def seed_database(db: Session) -> None:
                 status="active",
                 plan="standard",
                 starts_at=date(2025, 1, 1),
-                ends_at=date(2027, 12, 31),
+                ends_at=None,
                 max_users=10,
             )
         )

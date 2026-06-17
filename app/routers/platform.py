@@ -6,7 +6,14 @@ from app.core.exceptions import AppError, raise_http
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.license import PlatformProductOut
-from app.schemas.platform_admin import PlatformClientOut, PlatformLicenseCreate, PlatformLicenseOut, PlatformLicenseUpdate
+from app.schemas.platform_admin import (
+    PlatformClientCreate,
+    PlatformClientOut,
+    PlatformLicenseCreate,
+    PlatformLicenseOut,
+    PlatformLicenseUpdate,
+    PlatformPlanOut,
+)
 from app.schemas.support_ticket import (
     SupportTicketMessageCreate,
     SupportTicketOut,
@@ -24,6 +31,27 @@ def list_platform_clients(
     db: Session = Depends(get_db),
 ) -> list[PlatformClientOut]:
     return PlatformAdminService(db).list_clients()
+
+
+@router.post("/clients", response_model=PlatformClientOut, status_code=status.HTTP_201_CREATED)
+def create_platform_client(
+    payload: PlatformClientCreate,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> PlatformClientOut:
+    try:
+        return PlatformAdminService(db).create_client(payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/plans", response_model=list[PlatformPlanOut])
+def list_platform_plans(
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> list[PlatformPlanOut]:
+    rows = PlatformAdminService(db).list_plans()
+    return [PlatformPlanOut(**row) for row in rows]
 
 
 @router.get("/licenses", response_model=list[PlatformLicenseOut])

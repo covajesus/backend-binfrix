@@ -31,5 +31,13 @@ class TenantUserOut(BaseModel):
     email: str
     name: str
     role: str
+    is_principal: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class TenantUsersPageOut(BaseModel):
+    max_users: int
+    current_users: int
+    can_invite: bool
+    users: list[TenantUserOut]
