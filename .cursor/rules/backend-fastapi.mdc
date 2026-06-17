@@ -1,0 +1,30 @@
+---
+description: Patrones FastAPI/SQLAlchemy Binfrix backend
+globs: backend/app/**/*
+alwaysApply: false
+---
+
+# Backend Binfrix
+
+## Capas (obligatorio en código nuevo)
+
+1. `routers/` — endpoints, `Depends`, `response_model`.
+2. `services/` — negocio; lanza `AppError` / `NotFoundError`.
+3. `repositories/` — queries; filtrar `tenant_id`.
+4. `models/` + `schemas/` — ORM y DTOs.
+
+## Multi-tenant
+
+- `get_tenant_context` para rutas admin de datos de tenant.
+- Store público: `app/routers/store.py` + `StoreService` (slug, sin JWT).
+- Admin plataforma: rol `administrador` o `is_superadmin`.
+
+## Arranque
+
+- Desde `backend/`: `python main.py` o `uvicorn app.main:app --port 8000`.
+- `.env`: `MYSQL_*`, `CORS_ORIGINS` (admin + tienda + dev ports), `APP_PORT`.
+
+## Nuevo recurso
+
+Copiar plantillas en `app/_templates/`, registrar router en `main.py`.
+Seed opcional en `app/db/seed.py` solo para demo inicial.

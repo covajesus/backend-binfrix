@@ -3,6 +3,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import JSON
 
 from app.db.base import Base
 
@@ -22,5 +23,7 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(String(50), default="")
     city: Mapped[str] = mapped_column(String(120), default="")
     status: Mapped[str] = mapped_column(String(20), default="active")
+    password_hash: Mapped[str] = mapped_column(String(255), default="")
+    shipping_addresses: Mapped[list] = mapped_column(JSON, default=list)
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[date] = mapped_column(Date)

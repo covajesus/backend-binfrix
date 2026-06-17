@@ -1,28 +1,26 @@
-from datetime import date
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_tenant_context
+from app.core.exceptions import AppError, raise_http
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerOut, CustomerUpdate
+from app.services.customer_service import CustomerService
 
 router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+def _service(ctx: TenantContext, db: Session) -> CustomerService:
+    return CustomerService(db, tenant_id=ctx.tenant.id)
 
 
 @router.get("", response_model=list[CustomerOut])
 def list_customers(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> list[Customer]:
-    return (
-        db.query(Customer)
-        .filter(Customer.tenant_id == ctx.tenant.id)
-        .order_by(Customer.created_at.desc())
-        .all()
-    )
+) -> list[CustomerOut]:
+    return _service(ctx, db).list_customers()
 
 
 @router.post("", response_model=CustomerOut, status_code=status.HTTP_201_CREATED)
@@ -30,22 +28,11 @@ def create_customer(
     payload: CustomerCreate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Customer:
-    customer = Customer(
-        tenant_id=ctx.tenant.id,
-        first_name=payload.first_name.strip(),
-        last_name=payload.last_name.strip(),
-        email=str(payload.email),
-        phone=payload.phone,
-        city=payload.city,
-        status=payload.status,
-        notes=payload.notes,
-        created_at=date.today(),
-    )
-    db.add(customer)
-    db.commit()
-    db.refresh(customer)
-    return customer
+) -> CustomerOut:
+    try:
+        return _service(ctx, db).create_customer(payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.get("/{customer_id}", response_model=CustomerOut)
@@ -53,15 +40,11 @@ def get_customer(
     customer_id: str,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Customer:
-    customer = (
-        db.query(Customer)
-        .filter(Customer.id == customer_id, Customer.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if customer is None:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    return customer
+) -> CustomerOut:
+    try:
+        return _service(ctx, db).get_customer(customer_id)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.patch("/{customer_id}", response_model=CustomerOut)
@@ -70,21 +53,11 @@ def update_customer(
     payload: CustomerUpdate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Customer:
-    customer = (
-        db.query(Customer)
-        .filter(Customer.id == customer_id, Customer.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if customer is None:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(customer, field, str(value) if field == "email" and value else value)
-
-    db.commit()
-    db.refresh(customer)
-    return customer
+) -> CustomerOut:
+    try:
+        return _service(ctx, db).update_customer(customer_id, payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -93,12 +66,7 @@ def delete_customer(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
 ) -> None:
-    customer = (
-        db.query(Customer)
-        .filter(Customer.id == customer_id, Customer.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if customer is None:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    db.delete(customer)
-    db.commit()
+    try:
+        _service(ctx, db).delete_customer(customer_id)
+    except AppError as exc:
+        raise_http(exc)

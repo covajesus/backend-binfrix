@@ -1,39 +1,26 @@
-from datetime import date
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_tenant_context
+from app.core.exceptions import AppError, raise_http
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.models.order import Order
-from app.models.payment import Payment
 from app.schemas.payment import PaymentCreate, PaymentOut, PaymentUpdate
-from app.utils.payments import generate_payment_number, map_payment_status_to_order, today
+from app.services.payment_service import PaymentService
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-def _sync_order_payment(db: Session, order_id: str | None, payment_status: str) -> None:
-    if not order_id:
-        return
-    order = db.get(Order, order_id)
-    if order is None:
-        return
-    order.payment_status = map_payment_status_to_order(payment_status)
+def _service(ctx: TenantContext, db: Session) -> PaymentService:
+    return PaymentService(db, tenant_id=ctx.tenant.id)
 
 
 @router.get("", response_model=list[PaymentOut])
 def list_payments(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> list[Payment]:
-    return (
-        db.query(Payment)
-        .filter(Payment.tenant_id == ctx.tenant.id)
-        .order_by(Payment.created_at.desc())
-        .all()
-    )
+) -> list[PaymentOut]:
+    return _service(ctx, db).list_payments()
 
 
 @router.post("", response_model=PaymentOut, status_code=status.HTTP_201_CREATED)
@@ -41,32 +28,11 @@ def create_payment(
     payload: PaymentCreate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Payment:
-    count = db.query(Payment).filter(Payment.tenant_id == ctx.tenant.id).count()
-    paid_at = payload.paid_at
-    if payload.status == "completed" and paid_at is None:
-        paid_at = today()
-
-    payment = Payment(
-        tenant_id=ctx.tenant.id,
-        payment_number=generate_payment_number(count),
-        order_id=payload.order_id,
-        order_number=payload.order_number,
-        customer_name=payload.customer_name,
-        amount=payload.amount,
-        method=payload.method,
-        status=payload.status,
-        transaction_ref=payload.transaction_ref,
-        notes=payload.notes,
-        paid_at=paid_at,
-        created_at=today(),
-    )
-    db.add(payment)
-    db.flush()
-    _sync_order_payment(db, payment.order_id, payment.status)
-    db.commit()
-    db.refresh(payment)
-    return payment
+) -> PaymentOut:
+    try:
+        return _service(ctx, db).create_payment(payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.get("/{payment_id}", response_model=PaymentOut)
@@ -74,15 +40,11 @@ def get_payment(
     payment_id: str,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Payment:
-    payment = (
-        db.query(Payment)
-        .filter(Payment.id == payment_id, Payment.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if payment is None:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
-    return payment
+) -> PaymentOut:
+    try:
+        return _service(ctx, db).get_payment(payment_id)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.patch("/{payment_id}", response_model=PaymentOut)
@@ -91,26 +53,11 @@ def update_payment(
     payload: PaymentUpdate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Payment:
-    payment = (
-        db.query(Payment)
-        .filter(Payment.id == payment_id, Payment.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if payment is None:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
-
-    data = payload.model_dump(exclude_unset=True)
-    for field, value in data.items():
-        setattr(payment, field, value)
-
-    if payment.status == "completed" and payment.paid_at is None:
-        payment.paid_at = date.today()
-
-    _sync_order_payment(db, payment.order_id, payment.status)
-    db.commit()
-    db.refresh(payment)
-    return payment
+) -> PaymentOut:
+    try:
+        return _service(ctx, db).update_payment(payment_id, payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -119,12 +66,7 @@ def delete_payment(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
 ) -> None:
-    payment = (
-        db.query(Payment)
-        .filter(Payment.id == payment_id, Payment.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if payment is None:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
-    db.delete(payment)
-    db.commit()
+    try:
+        _service(ctx, db).delete_payment(payment_id)
+    except AppError as exc:
+        raise_http(exc)

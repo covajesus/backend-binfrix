@@ -1,6 +1,14 @@
 # Binfrix Backend API
 
-API REST **multi-tenant** en **FastAPI** + **SQLAlchemy** + **MySQL** para el panel admin y el ecommerce.
+API REST **multi-tenant** en **FastAPI** + **SQLAlchemy** + **MySQL**.
+
+## Arquitectura (leer antes de codificar)
+
+- [`../AGENTS.md`](../AGENTS.md)
+- [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+- `.cursor/rules/` — reglas Cursor
+- `app/_templates/` — plantillas Router / Service / Repository
+- Ejemplo: `app/services/catalog_service.py` + `app/routers/catalog.py`
 
 ## Requisitos
 
@@ -49,6 +57,8 @@ En el servidor (`/var/www/api.binfrix.io/public_html/`) crea el archivo `.env` c
 
 ## Inicio rápido
 
+**Importante:** ejecuta siempre desde la carpeta `backend` (no desde `backend/app`):
+
 ```bash
 cd backend
 python -m venv .venv
@@ -57,11 +67,17 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8097
-# o: python -m app.main  (usa APP_PORT del .env, por defecto 8097)
+
+# Opción recomendada
+python main.py
+
+# O con uvicorn
+uvicorn app.main:app --reload --port 8000
 ```
 
-Documentación: [http://localhost:8097/docs](http://localhost:8097/docs)
+Documentación: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+Verificar salud: [http://localhost:8000/health](http://localhost:8000/health) (incluye estado de MySQL)
 
 ## Credenciales demo
 
@@ -135,13 +151,13 @@ X-Tenant-ID: tienda-demo
 ## Ejemplo login
 
 ```bash
-curl -X POST http://localhost:8097/api/v1/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"admin@binfrix.com\",\"password\":\"admin123\"}"
 ```
 
 ```bash
-curl http://localhost:8097/api/v1/catalog \
+curl http://localhost:8000/api/v1/catalog \
   -H "Authorization: Bearer <token>" \
   -H "X-Tenant-ID: tienda-demo"
 ```
@@ -183,11 +199,11 @@ app/
 
 **Admin** (`admin-frontend`):
 ```env
-VITE_API_URL=http://localhost:8097
+VITE_API_URL=http://localhost:8000
 ```
 
 **Ecommerce** (`ecommerce`):
 ```env
-VITE_API_URL=http://localhost:8097
+VITE_API_URL=http://localhost:8000
 VITE_STORE_SLUG=tienda-demo
 ```

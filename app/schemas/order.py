@@ -21,6 +21,7 @@ class OrderCreate(BaseModel):
     status: str = "pending"
     payment_status: str = "pending"
     items: list[OrderLineItem]
+    shipping_amount: int = Field(default=0, ge=0)
     notes: str = ""
 
 
@@ -50,6 +51,7 @@ class OrderOut(BaseModel):
     items: list
     total: int
     notes: str
+    billing: dict = Field(default_factory=dict)
     created_at: date
 
     model_config = {"from_attributes": True}

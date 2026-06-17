@@ -1,9 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.config import get_settings
+from app.core.i18n import resolve_locale, translate_api_message
 from app.db.seed import seed_database
 from app.db.session import SessionLocal, init_db
 from app.routers import (
@@ -12,12 +15,18 @@ from app.routers import (
     categories,
     customers,
     dashboard,
+    help_pages,
     licenses,
     orders,
     payments,
+    platform,
     products,
     roles,
+    sliders,
     store,
+    store_settings,
+    storefront_templates,
+    support_tickets,
     tenants,
 )
 
@@ -26,12 +35,23 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    init_db()
-    db = SessionLocal()
+    import logging
+
+    logger = logging.getLogger("binfrix")
+    logger.info("Iniciando API en puerto %s", settings.app_port)
+    logger.info("MySQL %s:%s/%s", settings.mysql_host, settings.mysql_port, settings.mysql_database)
+
     try:
-        seed_database(db)
-    finally:
-        db.close()
+        init_db()
+        db = SessionLocal()
+        try:
+            seed_database(db)
+        finally:
+            db.close()
+        logger.info("Base de datos lista")
+    except Exception:
+        logger.exception("Error al iniciar base de datos")
+        raise
     yield
 
 
@@ -50,6 +70,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    locale = resolve_locale(request.headers.get("accept-language"))
+    detail = exc.detail
+    if isinstance(detail, str):
+        detail = translate_api_message(detail, locale)
+    elif isinstance(detail, list):
+        detail = [
+            {
+                **item,
+                "msg": translate_api_message(item.get("msg", ""), locale),
+            }
+            if isinstance(item, dict)
+            else item
+            for item in detail
+        ]
+    return JSONResponse(status_code=exc.status_code, content={"detail": detail})
+
+
 api_prefix = settings.api_prefix
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(roles.router, prefix=api_prefix)
@@ -62,12 +102,33 @@ app.include_router(customers.router, prefix=api_prefix)
 app.include_router(orders.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
 app.include_router(dashboard.router, prefix=api_prefix)
+app.include_router(platform.router, prefix=api_prefix)
+app.include_router(sliders.router, prefix=api_prefix)
+app.include_router(help_pages.router, prefix=api_prefix)
+app.include_router(support_tickets.router, prefix=api_prefix)
+app.include_router(store_settings.router, prefix=api_prefix)
+app.include_router(storefront_templates.router, prefix=api_prefix)
 app.include_router(store.router, prefix=api_prefix)
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": settings.app_name}
+def health() -> dict[str, str | bool]:
+    db_ok = False
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    status = "ok" if db_ok else "degraded"
+    return {
+        "status": status,
+        "service": settings.app_name,
+        "database": db_ok,
+        "api_prefix": settings.api_prefix,
+    }
 
 
 if __name__ == "__main__":

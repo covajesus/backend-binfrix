@@ -29,4 +29,5 @@ class Order(Base):
     items: Mapped[list] = mapped_column(JSON, default=list)
     total: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[str] = mapped_column(Text, default="")
+    billing: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[date] = mapped_column(Date)

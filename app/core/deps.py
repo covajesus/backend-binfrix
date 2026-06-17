@@ -43,9 +43,15 @@ def get_current_user(
     return user
 
 
-def get_platform_role_slug(user: User) -> str:
+def get_platform_role_slug(user: User, db: Session | None = None) -> str:
     if user.role:
         return user.role.slug
+    if db is not None and user.role_id:
+        from app.models.role import Role
+
+        role = db.get(Role, user.role_id)
+        if role:
+            return role.slug
     if user.is_superadmin:
         return ROLE_ADMIN
     return "staff"
@@ -98,7 +104,7 @@ def get_tenant_context(
     if tenant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant no encontrado")
 
-    if user.is_superadmin:
+    if user.is_superadmin or is_platform_admin(get_platform_role_slug(user, db)):
         return TenantContext(user=user, tenant=tenant, role="admin")
 
     membership = (

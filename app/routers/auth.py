@@ -35,6 +35,7 @@ def _user_tenants(user: User, db: Session) -> list[TenantSummary]:
 
     memberships = (
         db.query(TenantMembership)
+        .options(joinedload(TenantMembership.tenant))
         .filter(TenantMembership.user_id == user.id)
         .all()
     )

@@ -1,0 +1,11 @@
+---
+description: Binfrix — leer AGENTS.md antes de codificar
+alwaysApply: true
+---
+
+# Binfrix backend
+
+Lee `../../AGENTS.md` y `../../docs/ARCHITECTURE.md`.
+
+Código nuevo: Router → Service → Repository. Plantillas en `app/_templates/`.
+Ejemplo vivo: `catalog_service.py` + `routers/catalog.py`.

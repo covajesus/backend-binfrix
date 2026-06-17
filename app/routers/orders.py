@@ -1,27 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_tenant_context
+from app.core.exceptions import AppError, raise_http
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.models.order import Order
+from app.schemas.billing import BillingDocumentOut, BillingIssueIn
 from app.schemas.order import OrderCreate, OrderOut, OrderUpdate
-from app.utils.orders import calc_order_total, generate_order_number, normalize_line_items, today
+from app.services.billing_service import BillingService
+from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+def _service(ctx: TenantContext, db: Session) -> OrderService:
+    return OrderService(db, tenant_id=ctx.tenant.id)
 
 
 @router.get("", response_model=list[OrderOut])
 def list_orders(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> list[Order]:
-    return (
-        db.query(Order)
-        .filter(Order.tenant_id == ctx.tenant.id)
-        .order_by(Order.created_at.desc())
-        .all()
-    )
+) -> list[OrderOut]:
+    return _service(ctx, db).list_orders()
 
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
@@ -29,29 +31,11 @@ def create_order(
     payload: OrderCreate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Order:
-    count = db.query(Order).filter(Order.tenant_id == ctx.tenant.id).count()
-    items = normalize_line_items([item.model_dump() for item in payload.items])
-    order = Order(
-        tenant_id=ctx.tenant.id,
-        order_number=generate_order_number(count),
-        customer_id=payload.customer_id,
-        customer_name=payload.customer_name.strip(),
-        customer_email=payload.customer_email,
-        customer_phone=payload.customer_phone,
-        shipping_address=payload.shipping_address,
-        city=payload.city,
-        status=payload.status,
-        payment_status=payload.payment_status,
-        items=items,
-        total=calc_order_total(items),
-        notes=payload.notes,
-        created_at=today(),
-    )
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    return order
+) -> OrderOut:
+    try:
+        return _service(ctx, db).create_order(payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.get("/{order_id}", response_model=OrderOut)
@@ -59,15 +43,11 @@ def get_order(
     order_id: str,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Order:
-    order = (
-        db.query(Order)
-        .filter(Order.id == order_id, Order.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if order is None:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
-    return order
+) -> OrderOut:
+    try:
+        return _service(ctx, db).get_order(order_id)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.patch("/{order_id}", response_model=OrderOut)
@@ -76,28 +56,57 @@ def update_order(
     payload: OrderUpdate,
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
-) -> Order:
-    order = (
-        db.query(Order)
-        .filter(Order.id == order_id, Order.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if order is None:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+) -> OrderOut:
+    try:
+        return _service(ctx, db).update_order(order_id, payload)
+    except AppError as exc:
+        raise_http(exc)
 
-    data = payload.model_dump(exclude_unset=True)
-    if "items" in data and data["items"] is not None:
-        items = normalize_line_items(data["items"])
-        order.items = items
-        order.total = calc_order_total(items)
-        data.pop("items")
 
-    for field, value in data.items():
-        setattr(order, field, value)
+def _billing_service(ctx: TenantContext, db: Session) -> BillingService:
+    return BillingService(db, tenant_id=ctx.tenant.id)
 
-    db.commit()
-    db.refresh(order)
-    return order
+
+@router.get("/{order_id}/billing", response_model=BillingDocumentOut)
+def get_order_billing(
+    order_id: str,
+    ctx: TenantContext = Depends(get_tenant_context),
+    db: Session = Depends(get_db),
+) -> BillingDocumentOut:
+    try:
+        return _billing_service(ctx, db).get_billing_status(order_id)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.post("/{order_id}/billing/issue", response_model=BillingDocumentOut)
+def issue_order_billing(
+    order_id: str,
+    payload: BillingIssueIn,
+    ctx: TenantContext = Depends(get_tenant_context),
+    db: Session = Depends(get_db),
+) -> BillingDocumentOut:
+    try:
+        return _billing_service(ctx, db).issue_document(order_id, payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/{order_id}/billing/pdf")
+def download_order_billing_pdf(
+    order_id: str,
+    ctx: TenantContext = Depends(get_tenant_context),
+    db: Session = Depends(get_db),
+) -> Response:
+    try:
+        pdf_bytes, filename = _billing_service(ctx, db).fetch_pdf(order_id)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -106,12 +115,7 @@ def delete_order(
     ctx: TenantContext = Depends(get_tenant_context),
     db: Session = Depends(get_db),
 ) -> None:
-    order = (
-        db.query(Order)
-        .filter(Order.id == order_id, Order.tenant_id == ctx.tenant.id)
-        .first()
-    )
-    if order is None:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
-    db.delete(order)
-    db.commit()
+    try:
+        _service(ctx, db).delete_order(order_id)
+    except AppError as exc:
+        raise_http(exc)

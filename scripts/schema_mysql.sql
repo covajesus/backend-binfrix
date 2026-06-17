@@ -13,7 +13,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS support_tickets;
 DROP TABLE IF EXISTS catalog_products;
+DROP TABLE IF EXISTS help_pages;
+DROP TABLE IF EXISTS store_settings;
+DROP TABLE IF EXISTS sliders;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS tenant_licenses;
@@ -126,6 +130,7 @@ CREATE TABLE categories (
   tenant_id   CHAR(36)     NOT NULL,
   name        VARCHAR(255) NOT NULL,
   description TEXT         NOT NULL,
+  image_url   TEXT         NOT NULL,
   status      VARCHAR(20)  NOT NULL DEFAULT 'active',
   created_at  DATE         NOT NULL,
   PRIMARY KEY (id),
@@ -151,6 +156,72 @@ CREATE TABLE customers (
   KEY ix_customers_tenant_id (tenant_id),
   KEY ix_customers_email (email),
   CONSTRAINT fk_customers_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- Sliders / banners del home (por tenant)
+-- -----------------------------------------------------------------------------
+CREATE TABLE sliders (
+  id           CHAR(36)      NOT NULL,
+  tenant_id    CHAR(36)      NOT NULL,
+  title        VARCHAR(255)  NOT NULL,
+  subtitle     VARCHAR(255)  NOT NULL DEFAULT '',
+  cta          VARCHAR(120)  NOT NULL DEFAULT 'Comprar',
+  link_suffix  VARCHAR(255)  NOT NULL DEFAULT '',
+  image_url    TEXT          NOT NULL,
+  theme        VARCHAR(10)   NOT NULL DEFAULT 'dark',
+  sort_order   INT           NOT NULL DEFAULT 0,
+  status       VARCHAR(20)   NOT NULL DEFAULT 'active',
+  created_at   DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at   DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  KEY ix_sliders_tenant_id (tenant_id),
+  KEY ix_sliders_sort_order (sort_order),
+  CONSTRAINT fk_sliders_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- Páginas de ayuda (por tenant, contenido dinámico para el storefront)
+-- -----------------------------------------------------------------------------
+CREATE TABLE help_pages (
+  id          CHAR(36)      NOT NULL,
+  tenant_id   CHAR(36)      NOT NULL,
+  slug        VARCHAR(80)   NOT NULL,
+  nav_label   VARCHAR(120)  NOT NULL,
+  title       VARCHAR(255)  NOT NULL,
+  subtitle    VARCHAR(255)  NOT NULL DEFAULT '',
+  intro       TEXT          NOT NULL,
+  sections    JSON          NOT NULL,
+  sort_order  INT           NOT NULL DEFAULT 0,
+  status      VARCHAR(20)   NOT NULL DEFAULT 'active',
+  created_at  DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at  DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_help_pages_tenant_slug (tenant_id, slug),
+  KEY ix_help_pages_tenant_id (tenant_id),
+  KEY ix_help_pages_sort_order (sort_order),
+  CONSTRAINT fk_help_pages_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- Configuración de tienda (barra superior, redes, contacto)
+-- -----------------------------------------------------------------------------
+CREATE TABLE store_settings (
+  id            CHAR(36)      NOT NULL,
+  tenant_id     CHAR(36)      NOT NULL,
+  phone         VARCHAR(40)   NOT NULL DEFAULT '',
+  schedule      VARCHAR(120)  NOT NULL DEFAULT '',
+  support_label VARCHAR(120)  NOT NULL DEFAULT '',
+  support_href  VARCHAR(255)  NOT NULL DEFAULT '/help',
+  contact_email VARCHAR(255)  NOT NULL DEFAULT '',
+  store_url     VARCHAR(500)  NOT NULL DEFAULT '',
+  social_links  JSON          NOT NULL,
+  created_at    DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at    DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_store_settings_tenant (tenant_id),
+  KEY ix_store_settings_tenant_id (tenant_id),
+  CONSTRAINT fk_store_settings_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -230,4 +301,29 @@ CREATE TABLE payments (
   KEY ix_payments_order_id (order_id),
   CONSTRAINT fk_payments_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id),
   CONSTRAINT fk_payments_order  FOREIGN KEY (order_id)  REFERENCES orders (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- Tickets de soporte (por tenant)
+-- -----------------------------------------------------------------------------
+CREATE TABLE support_tickets (
+  id                 CHAR(36)     NOT NULL,
+  tenant_id          CHAR(36)     NOT NULL,
+  ticket_number      VARCHAR(30)  NOT NULL,
+  subject            VARCHAR(255) NOT NULL,
+  description        TEXT         NOT NULL,
+  status             VARCHAR(30)  NOT NULL DEFAULT 'open',
+  priority           VARCHAR(20)  NOT NULL DEFAULT 'normal',
+  created_by_user_id CHAR(36)     NOT NULL,
+  created_by_name    VARCHAR(255) NOT NULL DEFAULT '',
+  messages           JSON         NOT NULL,
+  created_at         DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at         DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_support_tickets_tenant_number (tenant_id, ticket_number),
+  KEY ix_support_tickets_tenant_id (tenant_id),
+  KEY ix_support_tickets_ticket_number (ticket_number),
+  KEY ix_support_tickets_created_by_user_id (created_by_user_id),
+  CONSTRAINT fk_support_tickets_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id),
+  CONSTRAINT fk_support_tickets_user FOREIGN KEY (created_by_user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
