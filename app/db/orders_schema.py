@@ -11,10 +11,13 @@ def ensure_order_billing_column() -> list[str]:
         return []
 
     cols = {c["name"] for c in inspector.get_columns("orders")}
-    if "billing" in cols:
-        return []
+    added: list[str] = []
+    if "billing" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE orders ADD COLUMN billing JSON NULL"))
+        added.append("billing")
 
     with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE orders ADD COLUMN billing JSON NULL"))
+        conn.execute(text("UPDATE orders SET billing = JSON_OBJECT() WHERE billing IS NULL"))
 
-    return ["billing"]
+    return added

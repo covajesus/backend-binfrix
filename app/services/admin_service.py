@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.core.tenant_context import TenantContext
 from app.models.catalog import CatalogProduct
 from app.models.customer import Customer
@@ -8,7 +8,12 @@ from app.models.license import TenantLicense
 from app.models.platform_product import PlatformProduct
 from app.models.tenant import Tenant, TenantMembership
 from app.schemas.dashboard import ActivityOut, DashboardOut, StatOut
-from app.schemas.platform_admin import PlatformClientOut, PlatformLicenseOut
+from app.schemas.platform_admin import (
+    PlatformClientOut,
+    PlatformLicenseCreate,
+    PlatformLicenseOut,
+    PlatformLicenseUpdate,
+)
 from app.services.base import BaseService
 from app.utils.catalog import get_display_price, get_total_stock, is_variable_product
 
@@ -181,6 +186,7 @@ class PlatformAdminService(BaseService):
         return [
             PlatformLicenseOut(
                 id=row.id,
+                tenant_id=row.tenant_id,
                 client_name=row.tenant.name,
                 product_name=row.platform_product.name,
                 product_id=row.platform_product_id,
@@ -188,6 +194,107 @@ class PlatformAdminService(BaseService):
                 status=row.status,
                 starts_at=row.starts_at,
                 ends_at=row.ends_at,
+                max_users=row.max_users,
             )
             for row in rows
         ]
+
+    def create_license(self, payload: PlatformLicenseCreate) -> PlatformLicenseOut:
+        tenant = self.db.get(Tenant, payload.tenant_id)
+        if tenant is None:
+            raise NotFoundError("Cliente no encontrado")
+
+        product = self.db.get(PlatformProduct, payload.platform_product_id)
+        if product is None:
+            raise NotFoundError("Producto Binfrix no encontrado")
+
+        existing = (
+            self.db.query(TenantLicense)
+            .filter(
+                TenantLicense.tenant_id == payload.tenant_id,
+                TenantLicense.platform_product_id == payload.platform_product_id,
+            )
+            .first()
+        )
+        if existing:
+            raise AppError("Ya existe licencia para este cliente y producto")
+
+        license_row = TenantLicense(
+            tenant_id=payload.tenant_id,
+            platform_product_id=payload.platform_product_id,
+            status=payload.status,
+            plan=payload.plan,
+            starts_at=payload.starts_at,
+            ends_at=payload.ends_at,
+            max_users=payload.max_users,
+        )
+        self.db.add(license_row)
+        self.commit()
+        self.db.refresh(license_row)
+        license_row = (
+            self.db.query(TenantLicense)
+            .options(
+                joinedload(TenantLicense.tenant),
+                joinedload(TenantLicense.platform_product),
+            )
+            .filter(TenantLicense.id == license_row.id)
+            .first()
+        )
+        return PlatformLicenseOut(
+            id=license_row.id,
+            tenant_id=license_row.tenant_id,
+            client_name=license_row.tenant.name,
+            product_name=license_row.platform_product.name,
+            product_id=license_row.platform_product_id,
+            plan=license_row.plan,
+            status=license_row.status,
+            starts_at=license_row.starts_at,
+            ends_at=license_row.ends_at,
+            max_users=license_row.max_users,
+        )
+
+    def update_license(self, license_id: str, payload: PlatformLicenseUpdate) -> PlatformLicenseOut:
+        license_row = (
+            self.db.query(TenantLicense)
+            .options(
+                joinedload(TenantLicense.tenant),
+                joinedload(TenantLicense.platform_product),
+            )
+            .filter(TenantLicense.id == license_id)
+            .first()
+        )
+        if license_row is None:
+            raise NotFoundError("Licencia no encontrada")
+
+        for field, value in payload.model_dump(exclude_unset=True).items():
+            setattr(license_row, field, value)
+
+        self.commit()
+        self.db.refresh(license_row)
+        return PlatformLicenseOut(
+            id=license_row.id,
+            tenant_id=license_row.tenant_id,
+            client_name=license_row.tenant.name,
+            product_name=license_row.platform_product.name,
+            product_id=license_row.platform_product_id,
+            plan=license_row.plan,
+            status=license_row.status,
+            starts_at=license_row.starts_at,
+            ends_at=license_row.ends_at,
+            max_users=license_row.max_users,
+        )
+
+    def delete_license(self, license_id: str) -> None:
+        license_row = self.db.get(TenantLicense, license_id)
+        if license_row is None:
+            raise NotFoundError("Licencia no encontrada")
+        self.db.delete(license_row)
+        self.commit()
+
+    def list_platform_products(self) -> list[PlatformProduct]:
+        return (
+            self.db.query(PlatformProduct)
+            .filter(PlatformProduct.is_active.is_(True))
+            .order_by(PlatformProduct.name)
+            .all()
+        )

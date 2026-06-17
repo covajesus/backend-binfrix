@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class OrderLineItem(BaseModel):
@@ -55,3 +55,8 @@ class OrderOut(BaseModel):
     created_at: date
 
     model_config = {"from_attributes": True}
+
+    @field_validator("billing", mode="before")
+    @classmethod
+    def normalize_billing(cls, value: dict | None) -> dict:
+        return value if isinstance(value, dict) else {}

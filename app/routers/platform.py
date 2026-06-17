@@ -5,7 +5,8 @@ from app.core.deps import require_platform_admin
 from app.core.exceptions import AppError, raise_http
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.platform_admin import PlatformClientOut, PlatformLicenseOut
+from app.schemas.license import PlatformProductOut
+from app.schemas.platform_admin import PlatformClientOut, PlatformLicenseCreate, PlatformLicenseOut, PlatformLicenseUpdate
 from app.schemas.support_ticket import (
     SupportTicketMessageCreate,
     SupportTicketOut,
@@ -31,6 +32,60 @@ def list_platform_licenses(
     db: Session = Depends(get_db),
 ) -> list[PlatformLicenseOut]:
     return PlatformAdminService(db).list_all_licenses()
+
+
+@router.post("/licenses", response_model=PlatformLicenseOut, status_code=status.HTTP_201_CREATED)
+def create_platform_license(
+    payload: PlatformLicenseCreate,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> PlatformLicenseOut:
+    try:
+        return PlatformAdminService(db).create_license(payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.patch("/licenses/{license_id}", response_model=PlatformLicenseOut)
+def update_platform_license(
+    license_id: str,
+    payload: PlatformLicenseUpdate,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> PlatformLicenseOut:
+    try:
+        return PlatformAdminService(db).update_license(license_id, payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.delete("/licenses/{license_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_platform_license(
+    license_id: str,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> None:
+    try:
+        PlatformAdminService(db).delete_license(license_id)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/products", response_model=list[PlatformProductOut])
+def list_platform_products(
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> list[PlatformProductOut]:
+    rows = PlatformAdminService(db).list_platform_products()
+    return [
+        PlatformProductOut(
+            id=row.id,
+            name=row.name,
+            description=row.description,
+            is_active=row.is_active,
+        )
+        for row in rows
+    ]
 
 
 @router.get("/support-tickets", response_model=list[SupportTicketOut])

@@ -150,6 +150,8 @@ class ProductService(BaseService):
                 name=p.name,
                 description=p.description,
                 licensed=self._is_product_licensed(p.id, license_map),
+                license_starts_at=license_map.get(p.id).starts_at if license_map.get(p.id) else None,
+                license_ends_at=license_map.get(p.id).ends_at if license_map.get(p.id) else None,
             )
             for p in products
         ]
