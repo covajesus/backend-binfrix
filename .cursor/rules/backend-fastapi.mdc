@@ -21,7 +21,7 @@ alwaysApply: false
 
 ## Arranque
 
-- Desde `backend/`: `python main.py` o `uvicorn app.main:app --port 8000`.
+- Desde `backend/`: `python main.py` o `uvicorn app.main:app --port 8097`.
 - `.env`: `MYSQL_*`, `CORS_ORIGINS` (admin + tienda + dev ports), `APP_PORT`.
 
 ## Nuevo recurso

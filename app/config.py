@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Binfrix API"
-    app_port: int = 8000
+    app_port: int = 8097
     api_prefix: str = "/api/v1"
     secret_key: str = "binfrix-dev-secret-change-in-production"
     algorithm: str = "HS256"
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         "http://localhost:5174,http://127.0.0.1:5174,"
         "http://localhost:5176,http://127.0.0.1:5176"
     )
-    api_public_url: str = "http://localhost:8000"
+    api_public_url: str = "http://localhost:8097"
     ecommerce_public_url: str = "http://localhost:5174"
 
     database_url: str = ""
