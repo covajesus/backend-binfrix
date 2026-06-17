@@ -11,6 +11,7 @@ from app.schemas.license import LicenseCreate, LicenseOut, LicenseUpdate, Platfo
 from app.schemas.platform_user import PlatformUserOut, PlatformUserRoleUpdate
 from app.schemas.product import ProductOut
 from app.services.base import BaseService
+from app.utils.licenses import is_tenant_license_active
 
 
 def _license_out(license_row: TenantLicense) -> LicenseOut:
@@ -122,18 +123,18 @@ class ProductService(BaseService):
         self.tenant_id = tenant_id
         self.user = user
 
-    def _licensed_product_ids(self) -> set[str] | None:
-        if self.user.is_superadmin:
-            return None
-        licenses = (
+    def _license_map(self) -> dict[str, TenantLicense]:
+        rows = (
             self.db.query(TenantLicense)
-            .filter(
-                TenantLicense.tenant_id == self.tenant_id,
-                TenantLicense.status == "active",
-            )
+            .filter(TenantLicense.tenant_id == self.tenant_id)
             .all()
         )
-        return {row.platform_product_id for row in licenses}
+        return {row.platform_product_id: row for row in rows}
+
+    def _is_product_licensed(self, product_id: str, license_map: dict[str, TenantLicense]) -> bool:
+        if self.user.is_superadmin:
+            return True
+        return is_tenant_license_active(license_map.get(product_id))
 
     def list_products(self) -> list[ProductOut]:
         products = (
@@ -142,21 +143,32 @@ class ProductService(BaseService):
             .order_by(PlatformProduct.name)
             .all()
         )
-        licensed_ids = self._licensed_product_ids()
-        if licensed_ids is not None:
-            products = [p for p in products if p.id in licensed_ids]
-        return [ProductOut(id=p.id, name=p.name, description=p.description) for p in products]
+        license_map = self._license_map()
+        return [
+            ProductOut(
+                id=p.id,
+                name=p.name,
+                description=p.description,
+                licensed=self._is_product_licensed(p.id, license_map),
+            )
+            for p in products
+        ]
 
     def get_product(self, product_id: str) -> ProductOut:
         product = self.db.get(PlatformProduct, product_id)
         if product is None or not product.is_active:
             raise NotFoundError("Producto no encontrado")
 
-        licensed_ids = self._licensed_product_ids()
-        if licensed_ids is not None and product_id not in licensed_ids:
-            raise ForbiddenError("Sin licencia para este producto")
+        license_map = self._license_map()
+        if not self._is_product_licensed(product_id, license_map):
+            raise ForbiddenError("Sin licencia activa para este producto")
 
-        return ProductOut(id=product.id, name=product.name, description=product.description)
+        return ProductOut(
+            id=product.id,
+            name=product.name,
+            description=product.description,
+            licensed=True,
+        )
 
 
 class RoleService(BaseService):

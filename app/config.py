@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     mysql_user: str = "binfrix"
     mysql_password: str = ""
     mysql_database: str = "binfrix"
+    mysql_unix_socket: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -46,6 +47,14 @@ class Settings(BaseSettings):
 
         password = quote_plus(self.mysql_password)
         user = quote_plus(self.mysql_user)
+
+        if self.mysql_unix_socket.strip():
+            socket_path = quote_plus(self.mysql_unix_socket.strip())
+            return (
+                f"mysql+pymysql://{user}:{password}@/{self.mysql_database}"
+                f"?unix_socket={socket_path}&charset=utf8mb4"
+            )
+
         return (
             f"mysql+pymysql://{user}:{password}@"
             f"{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"

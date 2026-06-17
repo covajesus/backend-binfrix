@@ -40,6 +40,7 @@ async def lifespan(_: FastAPI):
     logger = logging.getLogger("binfrix")
     logger.info("Iniciando API en puerto %s", settings.app_port)
     logger.info("MySQL %s:%s/%s", settings.mysql_host, settings.mysql_port, settings.mysql_database)
+    logger.info("CORS origins (%d): %s", len(settings.cors_origin_list), settings.cors_origin_list)
 
     try:
         init_db()

@@ -7,3 +7,4 @@ class ProductOut(BaseModel):
     id: str
     name: str
     description: str
+    licensed: bool = False
