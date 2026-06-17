@@ -72,12 +72,12 @@ pip install -r requirements.txt
 python main.py
 
 # O con uvicorn
-uvicorn app.main:app --reload --port 8000
+uvicorn main:app --reload --port 8097
 ```
 
-Documentación: [http://localhost:8000/docs](http://localhost:8000/docs)
+Documentación: [http://localhost:8097/docs](http://localhost:8097/docs)
 
-Verificar salud: [http://localhost:8000/health](http://localhost:8000/health) (incluye estado de MySQL)
+Verificar salud: [http://localhost:8097/health](http://localhost:8097/health) (incluye estado de MySQL)
 
 ## Credenciales demo
 
@@ -151,13 +151,13 @@ X-Tenant-ID: tienda-demo
 ## Ejemplo login
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
+curl -X POST http://localhost:8097/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"admin@binfrix.com\",\"password\":\"admin123\"}"
 ```
 
 ```bash
-curl http://localhost:8000/api/v1/catalog \
+curl http://localhost:8097/api/v1/catalog \
   -H "Authorization: Bearer <token>" \
   -H "X-Tenant-ID: tienda-demo"
 ```
@@ -199,11 +199,11 @@ app/
 
 **Admin** (`admin-frontend`):
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8097
 ```
 
 **Ecommerce** (`ecommerce`):
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8097
 VITE_STORE_SLUG=tienda-demo
 ```
