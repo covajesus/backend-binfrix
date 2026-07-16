@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   published_at DATE NOT NULL,
   read_time VARCHAR(40) NOT NULL DEFAULT '',
   excerpt TEXT NOT NULL,
+  cover_image_url TEXT NOT NULL,
   sections JSON NOT NULL,
   related_slugs JSON NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,

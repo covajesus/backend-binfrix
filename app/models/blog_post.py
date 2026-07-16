@@ -23,6 +23,7 @@ class BlogPost(Base):
     published_at: Mapped[date] = mapped_column(Date)
     read_time: Mapped[str] = mapped_column(String(40), default="")
     excerpt: Mapped[str] = mapped_column(Text, default="")
+    cover_image_url: Mapped[str] = mapped_column(Text, default="")
     sections: Mapped[list] = mapped_column(JSON, default=list)
     related_slugs: Mapped[list] = mapped_column(JSON, default=list)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)

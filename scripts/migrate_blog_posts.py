@@ -11,6 +11,7 @@ from sqlalchemy import inspect, text
 
 from app.db.seed import seed_blog_posts_if_empty
 from app.db.session import SessionLocal, engine, init_db
+from app.db.blog_posts_schema import ensure_blog_post_columns
 
 
 def main() -> None:
@@ -27,6 +28,10 @@ def main() -> None:
         print("Tabla blog_posts creada (SQL)")
     else:
         print("Tabla blog_posts ya existe")
+
+    added = ensure_blog_post_columns()
+    if added:
+        print(f"Columnas añadidas: {', '.join(added)}")
 
     db = SessionLocal()
     try:

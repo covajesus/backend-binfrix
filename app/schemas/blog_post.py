@@ -17,6 +17,7 @@ class BlogPostCreate(BaseModel):
     published_at: date
     read_time: str = Field(default="", max_length=40)
     excerpt: str = ""
+    cover_image_url: str = ""
     sections: list[BlogSection] = Field(default_factory=list)
     related_slugs: list[str] = Field(default_factory=list)
     sort_order: int = 0
@@ -30,6 +31,7 @@ class BlogPostUpdate(BaseModel):
     published_at: date | None = None
     read_time: str | None = None
     excerpt: str | None = None
+    cover_image_url: str | None = None
     sections: list[BlogSection] | None = None
     related_slugs: list[str] | None = None
     sort_order: int | None = None
@@ -44,6 +46,7 @@ class BlogPostOut(BaseModel):
     published_at: date
     read_time: str
     excerpt: str
+    cover_image_url: str = ""
     sections: list[BlogSection]
     related_slugs: list[str]
     sort_order: int

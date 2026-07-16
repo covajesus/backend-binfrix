@@ -122,6 +122,7 @@ class BlogPostService(BaseService):
             published_at=payload.published_at or date.today(),
             read_time=(payload.read_time or "").strip(),
             excerpt=(payload.excerpt or "").strip(),
+            cover_image_url=(payload.cover_image_url or "").strip(),
             sections=_serialize_sections(payload.sections),
             related_slugs=_serialize_related_slugs(payload.related_slugs),
             sort_order=payload.sort_order,
@@ -150,6 +151,8 @@ class BlogPostService(BaseService):
             data["read_time"] = data["read_time"].strip()
         if "excerpt" in data and data["excerpt"] is not None:
             data["excerpt"] = data["excerpt"].strip()
+        if "cover_image_url" in data and data["cover_image_url"] is not None:
+            data["cover_image_url"] = data["cover_image_url"].strip()
         if "sections" in data and data["sections"] is not None:
             data["sections"] = _serialize_sections(data["sections"])
         if "related_slugs" in data and data["related_slugs"] is not None:

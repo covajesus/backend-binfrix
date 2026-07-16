@@ -22,6 +22,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
     from app import models  # noqa: F401
+    from app.db.blog_posts_schema import ensure_blog_post_columns
     from app.db.customers_schema import ensure_customer_columns
     from app.db.orders_schema import ensure_order_billing_column
     from app.db.store_settings_schema import ensure_store_settings_columns
@@ -30,6 +31,7 @@ def init_db() -> None:
     ensure_store_settings_columns()
     ensure_customer_columns()
     ensure_order_billing_column()
+    ensure_blog_post_columns()
 
 
 def get_db() -> Generator[Session, None, None]:
