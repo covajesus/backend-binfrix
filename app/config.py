@@ -22,7 +22,10 @@ class Settings(BaseSettings):
     cors_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,"
         "http://localhost:5174,http://127.0.0.1:5174,"
-        "http://localhost:5176,http://127.0.0.1:5176"
+        "http://localhost:5175,http://127.0.0.1:5175,"
+        "http://localhost:5176,http://127.0.0.1:5176,"
+        "https://binfrix.com,https://www.binfrix.com,"
+        "https://admin.binfrix.io,https://binfrix.io"
     )
     api_public_url: str = "http://localhost:8097"
     ecommerce_public_url: str = "http://localhost:5174"

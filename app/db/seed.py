@@ -11,8 +11,10 @@ from app.models.order import Order
 from app.models.payment import Payment
 from app.models.slider import Slider
 from app.models.help_page import HelpPage
+from app.models.blog_post import BlogPost
 from app.models.store_settings import StoreSettings
 from app.db.help_seed_data import DEMO_HELP_PAGES
+from app.db.blog_seed_data import BLOG_SEED_POSTS
 from app.db.store_settings_seed_data import DEMO_STORE_SETTINGS
 from app.core.roles import PLATFORM_ROLES
 from app.models.platform_product import PlatformProduct
@@ -39,16 +41,7 @@ from app.db.sports_seed_content import (
 )
 
 
-PLATFORM_PRODUCTS = [
-    ("autolavado", "Autolavado", "Tickets, ventas, cierre de caja y liquidación de lavadores."),
-    ("dynamic-landing", "Dynamic Landing Page", "Landings dinámicas para campañas y conversión."),
-    ("ecommerce-b2b", "Ecommerce B2B", "Portal mayorista con intranet y presupuestos."),
-    ("ecommerce-b2c", "Ecommerce B2C", "Tienda en línea para venta al consumidor final."),
-    ("mantencion", "Mantención", "Soporte técnico, respaldos y monitoreo."),
-    ("ventas-whatsapp", "Ventas por WhatsApp", "Canal comercial con pedidos y seguimiento."),
-]
-
-RETIRED_PLATFORM_PRODUCT_IDS = ("pagos", "redes-sociales")
+from app.data.platform_catalog import PLATFORM_PRODUCTS, RETIRED_PLATFORM_PRODUCT_IDS
 
 DEMO_TENANT_SLUG = "tienda-demo"
 DEMO_TENANT_LICENSE_PRODUCTS = ("ecommerce-b2c",)
@@ -198,6 +191,27 @@ def repair_product_images(db: Session) -> None:
         changed = True
     if changed:
         db.commit()
+
+
+def seed_blog_posts_if_empty(db: Session) -> None:
+    if db.query(BlogPost).first():
+        return
+    for post_data in BLOG_SEED_POSTS:
+        db.add(
+            BlogPost(
+                slug=post_data["slug"],
+                title=post_data["title"],
+                type=post_data["type"],
+                published_at=post_data["published_at"],
+                read_time=post_data["read_time"],
+                excerpt=post_data["excerpt"],
+                sections=post_data["sections"],
+                related_slugs=post_data["related_slugs"],
+                sort_order=post_data["sort_order"],
+                status="published",
+            )
+        )
+    db.commit()
 
 
 def seed_demo_help_pages_if_empty(db: Session) -> None:
@@ -543,6 +557,32 @@ def repair_demo_tenant_licenses(db: Session) -> None:
     db.commit()
 
 
+def repair_platform_catalog(db: Session) -> None:
+    """Sincroniza productos SaaS activos y desactiva módulos retirados."""
+    for product_id in RETIRED_PLATFORM_PRODUCT_IDS:
+        retired = db.get(PlatformProduct, product_id)
+        if retired is not None:
+            retired.is_active = False
+
+    for product_id, name, description in PLATFORM_PRODUCTS:
+        row = db.get(PlatformProduct, product_id)
+        if row is None:
+            db.add(
+                PlatformProduct(
+                    id=product_id,
+                    name=name,
+                    description=description,
+                    is_active=True,
+                )
+            )
+        else:
+            row.name = name
+            row.description = description
+            row.is_active = True
+
+    db.commit()
+
+
 def seed_database(db: Session) -> None:
     ensure_category_image_column(db)
     seed_demo_sliders_if_empty(db)
@@ -550,10 +590,12 @@ def seed_database(db: Session) -> None:
     repair_category_images(db)
     repair_product_images(db)
     repair_sports_demo_content(db)
+    seed_blog_posts_if_empty(db)
     seed_demo_help_pages_if_empty(db)
     seed_demo_store_settings_if_empty(db)
     repair_demo_customer_portal_access(db)
     seed_demo_business_data_if_empty(db)
+    repair_platform_catalog(db)
     repair_demo_tenant_licenses(db)
     if db.query(User).first():
         return

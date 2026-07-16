@@ -1,36 +1,9 @@
+from app.data.platform_catalog import PLATFORM_PRODUCTS
 from app.schemas.product import ProductOut
 
 BINFRIX_PRODUCTS: list[ProductOut] = [
-    ProductOut(
-        id="autolavado",
-        name="Autolavado",
-        description="Tickets, ventas, cierre de caja y liquidación de lavadores.",
-    ),
-    ProductOut(
-        id="dynamic-landing",
-        name="Dynamic Landing Page",
-        description="Landings dinámicas para campañas y conversión.",
-    ),
-    ProductOut(
-        id="ecommerce-b2b",
-        name="Ecommerce B2B",
-        description="Portal mayorista con intranet y presupuestos.",
-    ),
-    ProductOut(
-        id="ecommerce-b2c",
-        name="Ecommerce B2C",
-        description="Tienda en línea para venta al consumidor final.",
-    ),
-    ProductOut(
-        id="mantencion",
-        name="Mantención",
-        description="Soporte técnico, respaldos y monitoreo.",
-    ),
-    ProductOut(
-        id="ventas-whatsapp",
-        name="Ventas por WhatsApp",
-        description="Canal comercial con pedidos y seguimiento.",
-    ),
+    ProductOut(id=product_id, name=name, description=description)
+    for product_id, name, description in PLATFORM_PRODUCTS
 ]
 
 

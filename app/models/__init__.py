@@ -7,8 +7,11 @@ from app.models.order import Order
 from app.models.payment import Payment
 from app.models.slider import Slider
 from app.models.help_page import HelpPage
+from app.models.landing_page import LandingPage
 from app.models.store_settings import StoreSettings
 from app.models.custom_storefront_template import CustomStorefrontTemplate
+from app.models.contact_message import ContactMessage
+from app.models.blog_post import BlogPost
 from app.models.support_ticket import SupportTicket
 from app.models.platform_product import PlatformProduct
 from app.models.tenant import Tenant, TenantMembership
@@ -28,7 +31,10 @@ __all__ = [
     "Payment",
     "Slider",
     "HelpPage",
+    "LandingPage",
     "StoreSettings",
     "CustomStorefrontTemplate",
+    "ContactMessage",
+    "BlogPost",
     "SupportTicket",
 ]

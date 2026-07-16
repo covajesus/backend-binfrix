@@ -150,6 +150,8 @@ class ProductService(BaseService):
                 name=p.name,
                 description=p.description,
                 licensed=self._is_product_licensed(p.id, license_map),
+                license_plan=license_map.get(p.id).plan if license_map.get(p.id) else None,
+                license_max_users=license_map.get(p.id).max_users if license_map.get(p.id) else None,
                 license_starts_at=license_map.get(p.id).starts_at if license_map.get(p.id) else None,
                 license_ends_at=license_map.get(p.id).ends_at if license_map.get(p.id) else None,
             )
@@ -162,6 +164,7 @@ class ProductService(BaseService):
             raise NotFoundError("Producto no encontrado")
 
         license_map = self._license_map()
+        license_row = license_map.get(product_id)
         if not self._is_product_licensed(product_id, license_map):
             raise ForbiddenError("Sin licencia activa para este producto")
 
@@ -170,6 +173,10 @@ class ProductService(BaseService):
             name=product.name,
             description=product.description,
             licensed=True,
+            license_plan=license_row.plan if license_row else None,
+            license_max_users=license_row.max_users if license_row else None,
+            license_starts_at=license_row.starts_at if license_row else None,
+            license_ends_at=license_row.ends_at if license_row else None,
         )
 
 

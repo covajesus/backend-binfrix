@@ -10,5 +10,7 @@ class ProductOut(BaseModel):
     name: str
     description: str
     licensed: bool = False
+    license_plan: str | None = None
+    license_max_users: int | None = None
     license_starts_at: date | None = None
     license_ends_at: date | None = None

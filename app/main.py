@@ -11,11 +11,14 @@ from app.db.seed import seed_database
 from app.db.session import SessionLocal, init_db
 from app.routers import (
     auth,
+    blog_posts,
     catalog,
     categories,
+    contact_messages,
     customers,
     dashboard,
     help_pages,
+    landing_pages,
     licenses,
     orders,
     payments,
@@ -106,7 +109,10 @@ app.include_router(dashboard.router, prefix=api_prefix)
 app.include_router(platform.router, prefix=api_prefix)
 app.include_router(sliders.router, prefix=api_prefix)
 app.include_router(help_pages.router, prefix=api_prefix)
+app.include_router(landing_pages.router, prefix=api_prefix)
 app.include_router(support_tickets.router, prefix=api_prefix)
+app.include_router(contact_messages.router, prefix=api_prefix)
+app.include_router(blog_posts.router, prefix=api_prefix)
 app.include_router(store_settings.router, prefix=api_prefix)
 app.include_router(storefront_templates.router, prefix=api_prefix)
 app.include_router(store.router, prefix=api_prefix)

@@ -13,8 +13,10 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS support_tickets;
 DROP TABLE IF EXISTS catalog_products;
+DROP TABLE IF EXISTS landing_pages;
 DROP TABLE IF EXISTS help_pages;
 DROP TABLE IF EXISTS store_settings;
 DROP TABLE IF EXISTS sliders;
@@ -204,6 +206,32 @@ CREATE TABLE help_pages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
+-- Landings dinámicas (por tenant, campañas y conversión)
+-- -----------------------------------------------------------------------------
+CREATE TABLE landing_pages (
+  id               CHAR(36)      NOT NULL,
+  tenant_id        CHAR(36)      NOT NULL,
+  slug             VARCHAR(80)   NOT NULL,
+  campaign_name    VARCHAR(120)  NOT NULL DEFAULT '',
+  title            VARCHAR(255)  NOT NULL,
+  subtitle         VARCHAR(255)  NOT NULL DEFAULT '',
+  intro            TEXT          NOT NULL,
+  hero_image_url   VARCHAR(500)  NOT NULL DEFAULT '',
+  hero_cta_label   VARCHAR(120)  NOT NULL DEFAULT '',
+  hero_cta_href    VARCHAR(500)  NOT NULL DEFAULT '',
+  sections         JSON          NOT NULL,
+  sort_order       INT           NOT NULL DEFAULT 0,
+  status           VARCHAR(20)   NOT NULL DEFAULT 'draft',
+  created_at       DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at       DATETIME(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_landing_pages_tenant_slug (tenant_id, slug),
+  KEY ix_landing_pages_tenant_id (tenant_id),
+  KEY ix_landing_pages_sort_order (sort_order),
+  CONSTRAINT fk_landing_pages_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
 -- Configuración de tienda (barra superior, redes, contacto)
 -- -----------------------------------------------------------------------------
 CREATE TABLE store_settings (
@@ -301,6 +329,23 @@ CREATE TABLE payments (
   KEY ix_payments_order_id (order_id),
   CONSTRAINT fk_payments_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id),
   CONSTRAINT fk_payments_order  FOREIGN KEY (order_id)  REFERENCES orders (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- Mensajes del formulario de contacto (sitio corporativo)
+-- -----------------------------------------------------------------------------
+CREATE TABLE contact_messages (
+  id         CHAR(36)     NOT NULL,
+  name       VARCHAR(255) NOT NULL,
+  phone      VARCHAR(50)  NOT NULL,
+  email      VARCHAR(255) NOT NULL,
+  interest   VARCHAR(255) NOT NULL,
+  status     VARCHAR(20)  NOT NULL DEFAULT 'new',
+  created_at DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  read_at    DATETIME(6)  NULL,
+  PRIMARY KEY (id),
+  KEY ix_contact_messages_email (email),
+  KEY ix_contact_messages_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
