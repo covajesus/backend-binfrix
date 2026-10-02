@@ -13,6 +13,14 @@ from app.utils.payments import generate_payment_number, map_payment_status_to_or
 class PaymentRepository(BaseRepository[Payment]):
     model = Payment
 
+    def find_by_transaction_ref(self, transaction_ref: str) -> Payment | None:
+        return (
+            self._base_query()
+            .filter(Payment.transaction_ref == transaction_ref)
+            .order_by(Payment.created_at.desc())
+            .first()
+        )
+
     def find_latest_for_order(self, order_id: str) -> Payment | None:
         return (
             self._base_query()

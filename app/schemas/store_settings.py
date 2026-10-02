@@ -5,9 +5,10 @@ from pydantic import BaseModel, Field
 
 
 ALLOWED_SOCIAL_IDS = frozenset({"instagram", "facebook", "x", "youtube"})
-ALLOWED_STOREFRONT_TEMPLATES = frozenset({"sports", "industrial-kitchen", "electronics"})
+ALLOWED_STOREFRONT_TEMPLATES = frozenset({"lamora"})
 ALLOWED_LOCALES = frozenset({"es", "en"})
 ALLOWED_PAYMENT_GATEWAY_ENVIRONMENTS = frozenset({"sandbox", "production"})
+ALLOWED_PAYMENT_COUNTRIES = frozenset({"CL", "VE", "CO"})
 ALLOWED_BILLING_COUNTRIES = frozenset({"CL", "CO", "PE", "VE"})
 
 
@@ -39,6 +40,8 @@ class StoreSettingsUpdate(BaseModel):
     account_label: str | None = None
     account_href: str | None = None
     promo_messages: list[str] | None = None
+    returns_enabled: bool | None = None
+    returns_days: int | None = Field(default=None, ge=1, le=365)
     header_links: list[HeaderNavLink] | None = None
     social_links: list[SocialLink] | None = None
     theme_colors: dict[str, str] | None = None
@@ -47,6 +50,8 @@ class StoreSettingsUpdate(BaseModel):
     payment_gateway_merchant_id: str | None = None
     payment_gateway_api_key: str | None = None
     payment_gateway_environment: str | None = None
+    payment_country: str | None = None
+    payment_methods: dict | None = None
     billing_enabled: bool | None = None
     billing_country: str | None = None
     billing_provider: str | None = None
@@ -76,6 +81,8 @@ class StoreSettingsOut(BaseModel):
     account_label: str
     account_href: str
     promo_messages: list[str]
+    returns_enabled: bool = False
+    returns_days: int = 30
     header_links: list[HeaderNavLink]
     social_links: list[SocialLink]
     theme_colors: dict[str, str]
@@ -84,6 +91,8 @@ class StoreSettingsOut(BaseModel):
     payment_gateway_merchant_id: str = ""
     payment_gateway_environment: str = "sandbox"
     payment_gateway_api_key_configured: bool = False
+    payment_country: str = "CL"
+    payment_methods: dict = Field(default_factory=dict)
     billing_enabled: bool = False
     billing_country: str = "CL"
     billing_provider: str = ""
@@ -116,8 +125,12 @@ class StoreSettingsPublicOut(BaseModel):
     account_label: str
     account_href: str
     promo_messages: list[str]
+    returns_enabled: bool = False
+    returns_days: int = 30
     header_links: list[HeaderNavLink]
     social_links: list[SocialLink]
     theme_colors: dict[str, str]
     payment_gateway_enabled: bool = False
     payment_gateway_provider: str = ""
+    payment_country: str = "CL"
+    payment_methods: dict = Field(default_factory=dict)

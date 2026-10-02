@@ -12,9 +12,11 @@ from app.models.payment import Payment
 from app.models.slider import Slider
 from app.models.help_page import HelpPage
 from app.models.blog_post import BlogPost
+from app.models.seo_page import SeoPage
 from app.models.store_settings import StoreSettings
 from app.db.help_seed_data import DEMO_HELP_PAGES
 from app.db.blog_seed_data import BLOG_SEED_POSTS
+from app.db.seo_seed_data import SEO_SEED_PAGES
 from app.db.store_settings_seed_data import DEMO_STORE_SETTINGS
 from app.core.roles import PLATFORM_ROLES
 from app.models.platform_product import PlatformProduct
@@ -35,10 +37,12 @@ from app.db.sports_seed_content import (
     DEMO_CATEGORY_SPECS,
     DEMO_PRODUCT_SPECS,
     DEMO_SLIDER_SPECS,
+    LEGACY_CATEGORY_NAMES,
     build_catalog_product,
     build_demo_categories,
     build_demo_sliders,
 )
+from app.utils.store_theme import default_theme_for_template
 
 
 from app.data.platform_catalog import PLATFORM_PRODUCTS, RETIRED_PLATFORM_PRODUCT_IDS
@@ -52,7 +56,7 @@ def _demo_sliders(tenant_id: str) -> list[Slider]:
 
 
 def repair_sports_demo_content(db: Session) -> None:
-    """Actualiza sliders, categorías y productos demo a temática deportiva."""
+    """Actualiza sliders, categorías y productos demo a la vitrina de joyería."""
     tenant = db.query(Tenant).filter(Tenant.slug == "tienda-demo").first()
     if tenant is None:
         return
@@ -85,10 +89,12 @@ def repair_sports_demo_content(db: Session) -> None:
     )
     spec_by_name = {spec["name"]: spec for spec in DEMO_CATEGORY_SPECS}
     for category in categories:
-        spec = spec_by_name.get(category.name)
+        target_name = LEGACY_CATEGORY_NAMES.get(category.name, category.name)
+        spec = spec_by_name.get(target_name)
         if not spec:
             continue
         index = DEMO_CATEGORY_SPECS.index(spec)
+        category.name = spec["name"]
         category.description = spec["description"]
         category.image_url = CATEGORY_IMAGES[index % len(CATEGORY_IMAGES)]
         changed = True
@@ -119,6 +125,16 @@ def repair_sports_demo_content(db: Session) -> None:
         if spec["sku"] in existing_skus:
             continue
         db.add(build_catalog_product(tenant.id, spec))
+        changed = True
+
+    settings = (
+        db.query(StoreSettings).filter(StoreSettings.tenant_id == tenant.id).first()
+    )
+    if settings is not None:
+        settings.storefront_template = "lamora"
+        settings.theme_colors = default_theme_for_template("lamora")
+        settings.promo_messages = list(DEMO_STORE_SETTINGS["promo_messages"])
+        settings.header_links = list(DEMO_STORE_SETTINGS["header_links"])
         changed = True
 
     if changed:
@@ -193,6 +209,30 @@ def repair_product_images(db: Session) -> None:
         db.commit()
 
 
+def seed_seo_pages_if_empty(db: Session) -> None:
+    if db.query(SeoPage).first():
+        return
+    for page_data in SEO_SEED_PAGES:
+        db.add(
+            SeoPage(
+                path=page_data["path"],
+                label=page_data["label"],
+                page_group=page_data.get("page_group", "site"),
+                title=page_data.get("title", ""),
+                description=page_data.get("description", ""),
+                og_title=page_data.get("og_title", page_data.get("title", "")),
+                og_description=page_data.get("og_description", page_data.get("description", "")),
+                og_image_url=page_data.get("og_image_url", ""),
+                canonical_path=page_data.get("canonical_path", page_data["path"]),
+                robots=page_data.get("robots", "index,follow"),
+                focus_keyword=page_data.get("focus_keyword", ""),
+                sort_order=page_data.get("sort_order", 0),
+                is_active=True,
+            )
+        )
+    db.commit()
+
+
 def seed_blog_posts_if_empty(db: Session) -> None:
     if db.query(BlogPost).first():
         return
@@ -212,6 +252,26 @@ def seed_blog_posts_if_empty(db: Session) -> None:
             )
         )
     db.commit()
+
+
+def repair_payment_help_page_content(db: Session) -> None:
+    credit_card_bullet = "Tarjetas de crédito y débito (Visa, Mastercard, American Express)."
+    pages = db.query(HelpPage).filter(HelpPage.slug == "payment").all()
+    changed = False
+    for page in pages:
+        sections = page.sections or []
+        updated = False
+        for section in sections:
+            bullets = section.get("bullets") or []
+            if credit_card_bullet not in bullets:
+                continue
+            section["bullets"] = [b for b in bullets if b != credit_card_bullet]
+            updated = True
+        if updated:
+            page.sections = sections
+            changed = True
+    if changed:
+        db.commit()
 
 
 def seed_demo_help_pages_if_empty(db: Session) -> None:
@@ -591,6 +651,8 @@ def seed_database(db: Session) -> None:
     repair_product_images(db)
     repair_sports_demo_content(db)
     seed_blog_posts_if_empty(db)
+    seed_seo_pages_if_empty(db)
+    repair_payment_help_page_content(db)
     seed_demo_help_pages_if_empty(db)
     seed_demo_store_settings_if_empty(db)
     repair_demo_customer_portal_access(db)

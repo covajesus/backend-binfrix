@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Form, status
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, raise_http
@@ -11,7 +11,13 @@ from app.schemas.catalog import CatalogProductOut
 from app.schemas.category import CategoryOut
 from app.schemas.help_page import HelpPageOut
 from app.schemas.order import OrderCreate, OrderOut
-from app.schemas.payment_session import PaymentSessionInitIn, PaymentSessionInitOut
+from app.schemas.payment_session import (
+    PaymentSandboxCompleteIn,
+    PaymentSandboxCompleteOut,
+    PaymentSessionInitIn,
+    PaymentSessionInitOut,
+    PagoMovilConfirmIn,
+)
 from app.schemas.slider import StoreSliderOut
 from app.schemas.store_auth import (
     CustomerAccountOut,
@@ -194,9 +200,85 @@ def store_init_payment_session(
             tenant_slug,
             tenant_id,
             payload.order_id,
+            payload.method,
         )
     except AppError as exc:
         raise_http(exc)
+
+
+@router.post(
+    "/{tenant_slug}/payments/sandbox",
+    response_model=PaymentSandboxCompleteOut,
+)
+def store_complete_sandbox_payment(
+    tenant_slug: str,
+    payload: PaymentSandboxCompleteIn,
+    db: Session = Depends(get_db),
+) -> PaymentSandboxCompleteOut:
+    try:
+        tenant_id = _tenant_id_for_slug(db, tenant_slug)
+        return _payment_gateway_service(db).complete_sandbox(tenant_id, payload.token)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.post(
+    "/{tenant_slug}/payments/mobile",
+    response_model=PaymentSandboxCompleteOut,
+)
+def store_confirm_mobile_payment(
+    tenant_slug: str,
+    payload: PagoMovilConfirmIn,
+    db: Session = Depends(get_db),
+) -> PaymentSandboxCompleteOut:
+    try:
+        tenant_id = _tenant_id_for_slug(db, tenant_slug)
+        return _payment_gateway_service(db).confirm_mobile_payment(
+            tenant_id,
+            payload.order_id,
+            payload.reference,
+        )
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/{tenant_slug}/payments/binance/return/{ref}")
+def store_binance_return(
+    tenant_slug: str,
+    ref: str,
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    tenant_id = _tenant_id_for_slug(db, tenant_slug)
+    redirect_url = _payment_gateway_service(db).complete_binance_return(tenant_id, ref)
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.api_route("/{tenant_slug}/payments/payu/return", methods=["GET", "POST"])
+async def store_payu_return(
+    tenant_slug: str,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Response:
+    params = {key: str(value) for key, value in request.query_params.items()}
+    if request.method == "POST":
+        form = await request.form()
+        params.update({key: str(value) for key, value in form.items()})
+    tenant_id = _tenant_id_for_slug(db, tenant_slug)
+    redirect_url = _payment_gateway_service(db).complete_payu_return(tenant_id, params)
+    if request.method == "POST":
+        return PlainTextResponse("OK")
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/{tenant_slug}/payments/wompi/return")
+def store_wompi_return(
+    tenant_slug: str,
+    id: str = "",
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    tenant_id = _tenant_id_for_slug(db, tenant_slug)
+    redirect_url = _payment_gateway_service(db).complete_wompi_return(tenant_id, id)
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/{tenant_slug}/payments/return")

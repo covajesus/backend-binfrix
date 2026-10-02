@@ -26,4 +26,4 @@ class Payment(Base):
     transaction_ref: Mapped[str] = mapped_column(String(120), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
     paid_at: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_at: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[date] = mapped_column(Date, default=date.today)

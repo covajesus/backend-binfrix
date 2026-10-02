@@ -168,6 +168,21 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN payment_gateway_environment VARCHAR(20) NOT NULL DEFAULT 'sandbox'",
             )
         )
+    if "payment_country" not in cols:
+        pending.append(
+            (
+                "payment_country",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN payment_country VARCHAR(5) NOT NULL DEFAULT 'CL'",
+            )
+        )
+    if "payment_methods" not in cols:
+        pending.append(
+            (
+                "payment_methods",
+                "ALTER TABLE store_settings ADD COLUMN payment_methods JSON NULL",
+            )
+        )
 
     if "billing_enabled" not in cols:
         pending.append(
@@ -257,6 +272,22 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN billing_emitter_commune VARCHAR(120) NOT NULL DEFAULT ''",
             )
         )
+    if "returns_enabled" not in cols:
+        pending.append(
+            (
+                "returns_enabled",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN returns_enabled TINYINT(1) NOT NULL DEFAULT 0",
+            )
+        )
+    if "returns_days" not in cols:
+        pending.append(
+            (
+                "returns_days",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN returns_days INT NOT NULL DEFAULT 30",
+            )
+        )
     if "billing_emitter_city" not in cols:
         pending.append(
             (
@@ -299,6 +330,13 @@ def ensure_store_settings_columns() -> list[str]:
                 text(
                     "UPDATE store_settings SET theme_colors = '{}' "
                     "WHERE theme_colors IS NULL"
+                )
+            )
+        if "payment_methods" in added or "payment_methods" in cols:
+            conn.execute(
+                text(
+                    "UPDATE store_settings SET payment_methods = '{}' "
+                    "WHERE payment_methods IS NULL"
                 )
             )
 

@@ -6,6 +6,7 @@ from app.core.exceptions import AppError, raise_http
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.blog_post import BlogPostCreate, BlogPostOut, BlogPostUpdate
+from app.schemas.seo_page import SeoPageCreate, SeoPageOut, SeoPageUpdate
 from app.schemas.contact_message import ContactMessageOut, ContactMessageUpdate
 from app.schemas.license import PlatformProductOut
 from app.schemas.platform_admin import (
@@ -23,6 +24,7 @@ from app.schemas.support_ticket import (
 )
 from app.services.admin_service import PlatformAdminService
 from app.services.blog_post_service import BlogPostService
+from app.services.seo_page_service import SeoPageService
 from app.services.contact_message_service import ContactMessageService
 from app.services.support_ticket_service import PlatformSupportTicketService
 
@@ -256,5 +258,62 @@ def delete_platform_blog_post(
 ) -> None:
     try:
         BlogPostService(db).delete(post_id)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/seo-pages", response_model=list[SeoPageOut])
+def list_platform_seo_pages(
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> list[SeoPageOut]:
+    return SeoPageService(db).list_pages()
+
+
+@router.post("/seo-pages", response_model=SeoPageOut, status_code=status.HTTP_201_CREATED)
+def create_platform_seo_page(
+    payload: SeoPageCreate,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> SeoPageOut:
+    try:
+        return SeoPageService(db).create(payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/seo-pages/{page_id}", response_model=SeoPageOut)
+def get_platform_seo_page(
+    page_id: str,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> SeoPageOut:
+    try:
+        return SeoPageService(db).get_by_id(page_id)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.patch("/seo-pages/{page_id}", response_model=SeoPageOut)
+def update_platform_seo_page(
+    page_id: str,
+    payload: SeoPageUpdate,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> SeoPageOut:
+    try:
+        return SeoPageService(db).update(page_id, payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.delete("/seo-pages/{page_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_platform_seo_page(
+    page_id: str,
+    _: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+) -> None:
+    try:
+        SeoPageService(db).delete(page_id)
     except AppError as exc:
         raise_http(exc)

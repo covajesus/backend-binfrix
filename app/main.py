@@ -25,6 +25,7 @@ from app.routers import (
     platform,
     products,
     roles,
+    seo_pages,
     sliders,
     store,
     store_settings,
@@ -113,6 +114,7 @@ app.include_router(landing_pages.router, prefix=api_prefix)
 app.include_router(support_tickets.router, prefix=api_prefix)
 app.include_router(contact_messages.router, prefix=api_prefix)
 app.include_router(blog_posts.router, prefix=api_prefix)
+app.include_router(seo_pages.router, prefix=api_prefix)
 app.include_router(store_settings.router, prefix=api_prefix)
 app.include_router(storefront_templates.router, prefix=api_prefix)
 app.include_router(store.router, prefix=api_prefix)

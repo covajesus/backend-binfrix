@@ -139,9 +139,9 @@ class CustomStorefrontTemplateService(BaseService):
             .first()
         )
         if settings and settings.storefront_template == row.template_id:
-            settings.storefront_template = row.extends_template or "sports"
+            settings.storefront_template = row.extends_template or "lamora"
             if settings.storefront_template not in ALLOWED_STOREFRONT_TEMPLATES:
-                settings.storefront_template = "sports"
+                settings.storefront_template = "lamora"
 
         self.db.delete(row)
         self.commit()

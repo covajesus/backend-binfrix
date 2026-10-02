@@ -1,4 +1,4 @@
-"""Contenido demo deportivo para sliders, categorías y catálogo."""
+"""Contenido demo de joyería para sliders, categorías y catálogo."""
 
 from datetime import date
 
@@ -9,82 +9,63 @@ from app.models.slider import Slider
 
 DEMO_SLIDER_SPECS = [
     {
-        "title": "RUNNING",
-        "subtitle": "Calzado ligero para tu próximo entreno",
-        "cta": "Ver calzado",
-        "link_suffix": "category/calzado",
+        "title": "Elegancia atemporal",
+        "subtitle": "Joyería para cada ocasión",
+        "cta": "Ver colección",
+        "link_suffix": "category/anillos",
         "theme": "dark",
         "sort_order": 1,
     },
     {
-        "title": "BASKETBALL",
-        "subtitle": "Ropa y accesorios para dominar la cancha",
-        "cta": "Ver ropa deportiva",
-        "link_suffix": "category/ropa",
+        "title": "Aros con luz propia",
+        "subtitle": "Piezas para el día y la noche",
+        "cta": "Ver aros",
+        "link_suffix": "category/aros",
         "theme": "light",
         "sort_order": 2,
     },
 ]
 
+LEGACY_CATEGORY_NAMES = {
+    "Calzado": "Anillos",
+    "Ropa": "Aros",
+    "Accesorios": "Collares",
+}
+
 DEMO_CATEGORY_SPECS = [
     {
-        "name": "Calzado",
-        "description": "Zapatillas de running, training y deportes outdoor",
+        "name": "Anillos",
+        "description": "Anillos de oro y piedras para uso diario y ocasiones especiales",
     },
     {
-        "name": "Ropa",
-        "description": "Polerones, camisetas y shorts para entrenar",
+        "name": "Aros",
+        "description": "Aros colgantes y argollas con acabado pulido",
     },
     {
-        "name": "Accesorios",
-        "description": "Mochilas, balones y equipamiento deportivo",
+        "name": "Collares",
+        "description": "Collares y pulseras para completar el look",
     },
 ]
 
 DEMO_PRODUCT_SPECS = [
     {
         "sku": "ZAP-001",
-        "title": "Zapatillas Running Pro",
-        "description": "Amortiguación reactiva para running y entrenamiento en ciudad.",
-        "category": "Calzado",
-        "product_type": "size_color",
-        "variant_mode": "size_color",
+        "title": "Anillo clásico",
+        "description": "Anillo de oro con piedra central, pensado para uso diario.",
+        "category": "Anillos",
+        "product_type": "simple",
+        "variant_mode": None,
         "status": "active",
-        "price": 0,
-        "stock": 42,
-        "color_images": {"#111827": [], "#f9fafb": []},
-        "variants": [
-            {
-                "id": "var-1",
-                "sku": "ZAP-001-40-BLK",
-                "size": "40",
-                "color": "#111827",
-                "price": 89990,
-                "stock": 12,
-            },
-            {
-                "id": "var-2",
-                "sku": "ZAP-001-42-BLK",
-                "size": "42",
-                "color": "#111827",
-                "price": 89990,
-                "stock": 18,
-            },
-            {
-                "id": "var-3",
-                "sku": "ZAP-001-42-WHT",
-                "size": "42",
-                "color": "#f9fafb",
-                "price": 89990,
-                "stock": 12,
-            },
-        ],
+        "price": 89990,
+        "stock": 12,
+        "color_images": {},
+        "variants": [],
     },
     {
         "sku": "POL-014",
-        "title": "Polerón Training Fit",
-        "description": "Polerón deportivo transpirable ideal para gym y running.",
-        "category": "Ropa",
+        "title": "Aros de perla",
+        "description": "Aros colgantes con perla y cierre de presión.",
+        "category": "Aros",
         "product_type": "simple",
         "status": "active",
         "price": 45990,
@@ -94,9 +75,9 @@ DEMO_PRODUCT_SPECS = [
     },
     {
         "sku": "BOL-008",
-        "title": "Mochila Gym Sport",
-        "description": "Mochila deportiva con compartimento para zapatillas y botella.",
-        "category": "Accesorios",
+        "title": "Collar de cadena",
+        "description": "Collar fino de eslabones, para llevar solo o en capas.",
+        "category": "Collares",
         "product_type": "simple",
         "status": "active",
         "price": 32990,
@@ -106,9 +87,9 @@ DEMO_PRODUCT_SPECS = [
     },
     {
         "sku": "BAL-003",
-        "title": "Balón Fútbol Pro",
-        "description": "Balón de fútbol Nº5 para entrenamiento y partidos amateur.",
-        "category": "Accesorios",
+        "title": "Pulsera eslabón",
+        "description": "Pulsera rígida de eslabones con cierre de caja.",
+        "category": "Collares",
         "product_type": "simple",
         "status": "active",
         "price": 24990,
@@ -118,38 +99,16 @@ DEMO_PRODUCT_SPECS = [
     },
     {
         "sku": "CAM-022",
-        "title": "Camiseta Dry-Fit Running",
-        "description": "Camiseta deportiva de secado rápido para alto rendimiento.",
-        "category": "Ropa",
-        "product_type": "size",
-        "variant_mode": "size",
+        "title": "Anillo solitario",
+        "description": "Solitario de piedra clara sobre montura delgada.",
+        "category": "Anillos",
+        "product_type": "simple",
+        "variant_mode": None,
         "status": "active",
-        "price": 0,
-        "stock": 30,
+        "price": 129990,
+        "stock": 8,
         "color_images": {},
-        "variants": [
-            {
-                "id": "var-cam-s",
-                "sku": "CAM-022-S",
-                "size": "S",
-                "price": 19990,
-                "stock": 8,
-            },
-            {
-                "id": "var-cam-m",
-                "sku": "CAM-022-M",
-                "size": "M",
-                "price": 19990,
-                "stock": 12,
-            },
-            {
-                "id": "var-cam-l",
-                "sku": "CAM-022-L",
-                "size": "L",
-                "price": 19990,
-                "stock": 10,
-            },
-        ],
+        "variants": [],
     },
 ]
 

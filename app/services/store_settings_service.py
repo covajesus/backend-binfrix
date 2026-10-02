@@ -9,6 +9,7 @@ from app.repositories.base import BaseRepository
 from app.schemas.store_settings import (
     ALLOWED_BILLING_COUNTRIES,
     ALLOWED_LOCALES,
+    ALLOWED_PAYMENT_COUNTRIES,
     ALLOWED_PAYMENT_GATEWAY_ENVIRONMENTS,
     ALLOWED_SOCIAL_IDS,
     ALLOWED_STOREFRONT_TEMPLATES,
@@ -18,6 +19,7 @@ from app.schemas.store_settings import (
 )
 from app.services.base import BaseService
 from app.services.custom_storefront_template_service import CustomStorefrontTemplateService
+from app.payments.catalog import admin_payment_methods, merge_payment_methods
 from app.utils.store_theme import merge_theme_colors, serialize_theme_colors_update
 
 
@@ -82,18 +84,45 @@ def _serialize_header_links(links: list) -> list[dict]:
     return result
 
 
+_RETURNS_PHRASE = "cambios y devoluciones"
+
+
+def _without_returns_phrase(messages: list) -> list[str]:
+    return [
+        message
+        for message in messages
+        if _RETURNS_PHRASE not in str(message).lower()
+    ]
+
+
 def _serialize_promo_messages(messages: list) -> list[str]:
     result: list[str] = []
     for message in messages:
         text = str(message).strip()
-        if text:
+        if text and _RETURNS_PHRASE not in text.lower():
             result.append(text)
     return result
 
 
+def _payment_methods_for_row(row: StoreSettings) -> dict:
+    methods = admin_payment_methods(merge_payment_methods(row.payment_methods))
+    stored = row.payment_methods if isinstance(row.payment_methods, dict) else {}
+    stored_webpay = (stored.get("CL") or {}).get("webpay") if isinstance(stored.get("CL"), dict) else {}
+    if not isinstance(stored_webpay, dict) or "environment" not in stored_webpay:
+        methods["CL"]["webpay"]["environment"] = row.payment_gateway_environment or "sandbox"
+    return methods
+
+
+def _active_template(template_id: str | None) -> str:
+    value = (template_id or "lamora").strip().lower()
+    if value in ALLOWED_STOREFRONT_TEMPLATES or value.startswith("custom-"):
+        return value
+    return "lamora"
+
+
 def _to_out(row: StoreSettings) -> StoreSettingsOut:
     defaults = DEMO_STORE_SETTINGS
-    template_id = row.storefront_template or "sports"
+    template_id = _active_template(row.storefront_template)
     return StoreSettingsOut(
         phone=row.phone or "",
         phone_href=_phone_href(row.phone),
@@ -108,7 +137,11 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
         default_locale=row.default_locale or "es",
         account_label=row.account_label or defaults.get("account_label", ""),
         account_href=row.account_href or defaults.get("account_href", "/help"),
-        promo_messages=row.promo_messages or list(defaults.get("promo_messages", [])),
+        promo_messages=_without_returns_phrase(
+            row.promo_messages or list(defaults.get("promo_messages", []))
+        ),
+        returns_enabled=bool(row.returns_enabled),
+        returns_days=row.returns_days or 30,
         header_links=row.header_links or list(defaults.get("header_links", [])),
         social_links=row.social_links or [],
         theme_colors=merge_theme_colors(template_id, row.theme_colors or {}),
@@ -117,6 +150,8 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
         payment_gateway_merchant_id=row.payment_gateway_merchant_id or "",
         payment_gateway_environment=row.payment_gateway_environment or "sandbox",
         payment_gateway_api_key_configured=bool((row.payment_gateway_api_key or "").strip()),
+        payment_country=row.payment_country or "CL",
+        payment_methods=_payment_methods_for_row(row),
         billing_enabled=bool(row.billing_enabled),
         billing_country=row.billing_country or "CL",
         billing_provider=row.billing_provider or "",
@@ -150,11 +185,15 @@ def _to_public_out(row: StoreSettings) -> StoreSettingsPublicOut:
         account_label=admin.account_label,
         account_href=admin.account_href,
         promo_messages=admin.promo_messages,
+        returns_enabled=admin.returns_enabled,
+        returns_days=admin.returns_days,
         header_links=admin.header_links,
         social_links=admin.social_links,
         theme_colors=admin.theme_colors,
         payment_gateway_enabled=admin.payment_gateway_enabled,
         payment_gateway_provider=admin.payment_gateway_provider,
+        payment_country=admin.payment_country,
+        payment_methods=admin.payment_methods,
     )
 
 
@@ -178,6 +217,8 @@ class StoreSettingsService(BaseService):
             "account_label": DEMO_STORE_SETTINGS.get("account_label", ""),
             "account_href": DEMO_STORE_SETTINGS.get("account_href", "/help"),
             "promo_messages": list(DEMO_STORE_SETTINGS.get("promo_messages", [])),
+            "returns_enabled": False,
+            "returns_days": 30,
             "header_links": list(DEMO_STORE_SETTINGS.get("header_links", [])),
             "social_links": list(DEMO_STORE_SETTINGS["social_links"]),
             "theme_colors": {},
@@ -258,6 +299,10 @@ class StoreSettingsService(BaseService):
             data["account_href"] = data["account_href"].strip() or "/help"
         if "promo_messages" in data and data["promo_messages"] is not None:
             data["promo_messages"] = _serialize_promo_messages(data["promo_messages"])
+        if "returns_enabled" in data and data["returns_enabled"] is not None:
+            data["returns_enabled"] = bool(data["returns_enabled"])
+        if "returns_days" in data and data["returns_days"] is not None:
+            data["returns_days"] = max(1, min(365, int(data["returns_days"])))
         if "header_links" in data and data["header_links"] is not None:
             data["header_links"] = _serialize_header_links(data["header_links"])
         if "social_links" in data and data["social_links"] is not None:
@@ -265,7 +310,7 @@ class StoreSettingsService(BaseService):
         if "theme_colors" in data and data["theme_colors"] is not None:
             serialized = serialize_theme_colors_update(data["theme_colors"])
             existing = merge_theme_colors(
-                row.storefront_template or "sports",
+                _active_template(row.storefront_template),
                 row.theme_colors or {},
             )
             existing.update(serialized)
@@ -281,6 +326,19 @@ class StoreSettingsService(BaseService):
             data["payment_gateway_environment"] = env
         if "payment_gateway_enabled" in data and data["payment_gateway_enabled"] is not None:
             data["payment_gateway_enabled"] = bool(data["payment_gateway_enabled"])
+        if "payment_country" in data and data["payment_country"] is not None:
+            country = data["payment_country"].strip().upper()
+            if country not in ALLOWED_PAYMENT_COUNTRIES:
+                raise ConflictError(f"País de pagos no válido: {country}")
+            data["payment_country"] = country
+        if "payment_methods" in data and data["payment_methods"] is not None:
+            merged = merge_payment_methods(data["payment_methods"], row.payment_methods)
+            data["payment_methods"] = merged
+            webpay = merged.get("CL", {}).get("webpay", {})
+            data["payment_gateway_enabled"] = bool(webpay.get("enabled"))
+            data["payment_gateway_environment"] = webpay.get("environment") or "sandbox"
+            if webpay.get("enabled") and not (row.payment_gateway_provider or "").strip():
+                data["payment_gateway_provider"] = "transbank_cl"
         if "payment_gateway_api_key" in data:
             api_key = (data.pop("payment_gateway_api_key") or "").strip()
             if api_key:

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -31,6 +31,8 @@ class StoreSettings(Base):
     account_label: Mapped[str] = mapped_column(String(120), default="")
     account_href: Mapped[str] = mapped_column(String(255), default="/help")
     promo_messages: Mapped[list] = mapped_column(JSON, default=list)
+    returns_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    returns_days: Mapped[int] = mapped_column(Integer, default=30)
     header_links: Mapped[list] = mapped_column(JSON, default=list)
     social_links: Mapped[list] = mapped_column(JSON, default=list)
     theme_colors: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -39,6 +41,8 @@ class StoreSettings(Base):
     payment_gateway_merchant_id: Mapped[str] = mapped_column(String(40), default="")
     payment_gateway_api_key: Mapped[str] = mapped_column(String(255), default="")
     payment_gateway_environment: Mapped[str] = mapped_column(String(20), default="sandbox")
+    payment_country: Mapped[str] = mapped_column(String(5), default="CL")
+    payment_methods: Mapped[dict] = mapped_column(JSON, default=dict)
     billing_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     billing_country: Mapped[str] = mapped_column(String(5), default="CL")
     billing_provider: Mapped[str] = mapped_column(String(40), default="")

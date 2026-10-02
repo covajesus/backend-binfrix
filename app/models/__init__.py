@@ -12,6 +12,7 @@ from app.models.store_settings import StoreSettings
 from app.models.custom_storefront_template import CustomStorefrontTemplate
 from app.models.contact_message import ContactMessage
 from app.models.blog_post import BlogPost
+from app.models.seo_page import SeoPage
 from app.models.support_ticket import SupportTicket
 from app.models.platform_product import PlatformProduct
 from app.models.tenant import Tenant, TenantMembership
@@ -36,5 +37,6 @@ __all__ = [
     "CustomStorefrontTemplate",
     "ContactMessage",
     "BlogPost",
+    "SeoPage",
     "SupportTicket",
 ]

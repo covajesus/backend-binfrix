@@ -180,7 +180,6 @@ DEMO_HELP_PAGES = [
                 "title": "Medios de pago aceptados",
                 "paragraphs": ["Puedes pagar con:"],
                 "bullets": [
-                    "Tarjetas de crédito y débito (Visa, Mastercard, American Express).",
                     "Transferencia bancaria.",
                     "Webpay y otras pasarelas habilitadas en el checkout.",
                 ],

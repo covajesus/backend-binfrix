@@ -23,6 +23,23 @@ THEME_COLOR_KEYS = (
 _HEX_RE = re.compile(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
 
 DEFAULT_THEME_BY_TEMPLATE: dict[str, dict[str, str]] = {
+    "lamora": {
+        "header_background": "#ffffff",
+        "header_text": "#000000",
+        "top_bar_background": "#000000",
+        "top_bar_text": "#ffffff",
+        "nav_background": "#ffffff",
+        "nav_text": "#000000",
+        "nav_hover": "#000000",
+        "accent": "#000000",
+        "accent_hover": "#31373d",
+        "button_primary_background": "#000000",
+        "button_primary_text": "#ffffff",
+        "footer_background": "#ffffff",
+        "footer_text": "#7e7e84",
+        "page_background": "#ffffff",
+        "page_text": "#000000",
+    },
     "sports": {
         "header_background": "#ffffff",
         "header_text": "#111111",
@@ -39,40 +56,6 @@ DEFAULT_THEME_BY_TEMPLATE: dict[str, dict[str, str]] = {
         "footer_text": "#ffffff",
         "page_background": "#ffffff",
         "page_text": "#111111",
-    },
-    "industrial-kitchen": {
-        "header_background": "#ffffff",
-        "header_text": "#111827",
-        "top_bar_background": "#0f172a",
-        "top_bar_text": "#f8fafc",
-        "nav_background": "#ffffff",
-        "nav_text": "#111827",
-        "nav_hover": "#b91c3c",
-        "accent": "#b91c3c",
-        "accent_hover": "#991b1b",
-        "button_primary_background": "#b91c3c",
-        "button_primary_text": "#ffffff",
-        "footer_background": "#0f172a",
-        "footer_text": "#f8fafc",
-        "page_background": "#f8fafc",
-        "page_text": "#111827",
-    },
-    "electronics": {
-        "header_background": "#0b1220",
-        "header_text": "#f8fafc",
-        "top_bar_background": "#0b1220",
-        "top_bar_text": "#94a3b8",
-        "nav_background": "#0b1220",
-        "nav_text": "#94a3b8",
-        "nav_hover": "#00d4ff",
-        "accent": "#00d4ff",
-        "accent_hover": "#00b8db",
-        "button_primary_background": "#00d4ff",
-        "button_primary_text": "#0b1220",
-        "footer_background": "#020617",
-        "footer_text": "#94a3b8",
-        "page_background": "#0f172a",
-        "page_text": "#f8fafc",
     },
 }
 
@@ -93,7 +76,7 @@ def normalize_hex_color(value: str) -> str | None:
 
 def default_theme_for_template(template_id: str) -> dict[str, str]:
     return dict(
-        DEFAULT_THEME_BY_TEMPLATE.get(template_id, DEFAULT_THEME_BY_TEMPLATE["sports"])
+        DEFAULT_THEME_BY_TEMPLATE.get(template_id, DEFAULT_THEME_BY_TEMPLATE["lamora"])
     )
 
 

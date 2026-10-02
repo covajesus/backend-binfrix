@@ -6,20 +6,21 @@ DEMO_STORE_SETTINGS = {
     "contact_email": "contacto@binfrix.com",
     "store_url": "http://localhost:5174",
     "store_logo_url": "",
-    "storefront_template": "sports",
+    "storefront_template": "lamora",
     "multilingual_enabled": False,
     "default_locale": "es",
     "account_label": "Cuenta",
     "account_href": "/account",
     "promo_messages": [
-        "Compra con hasta 6 cuotas sin interés",
-        "Servicio técnico propio",
-        "30 días para cambios y devoluciones",
+        "Joyería con envío a todo el país",
+        "Piezas con garantía de autenticidad",
     ],
+    "returns_enabled": False,
+    "returns_days": 30,
     "header_links": [
-        {"label": "Servicio al cliente", "href": "/help", "group": "left"},
-        {"label": "Tiendas", "href": "/about/corporate-site", "group": "left"},
-        {"label": "Recetas", "href": "/help", "group": "left"},
+        {"label": "Ayuda", "href": "/help", "group": "left"},
+        {"label": "Nosotros", "href": "/about/corporate-site", "group": "left"},
+        {"label": "Contacto", "href": "/help", "group": "right"},
     ],
     "social_links": [
         {

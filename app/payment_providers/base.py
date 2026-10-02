@@ -13,6 +13,10 @@ class PaymentGatewayConfig:
     api_key: str
     environment: str
     base_url: str
+    api_secret: str = ""
+    currency: str = ""
+    private_key: str = ""
+    payer_email: str = ""
 
 
 @dataclass(frozen=True)
