@@ -22,6 +22,7 @@ DEMO_STORE_SETTINGS = {
     "contact_email": "contacto@binfrix.com",
     "store_url": "http://localhost:5174",
     "store_logo_url": STORE_LOGO_URL,
+    "store_favicon_url": "",
     "storefront_template": "lamora",
     "multilingual_enabled": False,
     "default_locale": "es",

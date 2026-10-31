@@ -39,6 +39,7 @@ class StoreSettings(Base):
     contact_email: Mapped[str] = mapped_column(String(255), default="")
     store_url: Mapped[str] = mapped_column(String(500), default="")
     store_logo_url: Mapped[str] = mapped_column(Text, default="")
+    store_favicon_url: Mapped[str] = mapped_column(Text, default="")
     storefront_template: Mapped[str] = mapped_column(String(40), default="sports")
     multilingual_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     default_locale: Mapped[str] = mapped_column(String(5), default="es")

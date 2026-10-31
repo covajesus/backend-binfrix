@@ -188,6 +188,7 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
         contact_email=row.contact_email or "",
         store_url=row.store_url or "",
         store_logo_url=row.store_logo_url or "",
+        store_favicon_url=(getattr(row, "store_favicon_url", None) or "").strip(),
         storefront_template=template_id,
         multilingual_enabled=bool(row.multilingual_enabled),
         default_locale=row.default_locale or "es",
@@ -237,6 +238,7 @@ def _to_public_out(row: StoreSettings) -> StoreSettingsPublicOut:
         contact_email=admin.contact_email,
         store_url=admin.store_url,
         store_logo_url=admin.store_logo_url,
+        store_favicon_url=admin.store_favicon_url,
         storefront_template=admin.storefront_template,
         multilingual_enabled=admin.multilingual_enabled,
         default_locale=admin.default_locale,
@@ -303,6 +305,7 @@ class StoreSettingsService(BaseService):
             "store_logo_url": DEMO_STORE_SETTINGS.get(
                 "store_logo_url", "https://binfrix.io/logo.png"
             ),
+            "store_favicon_url": DEMO_STORE_SETTINGS.get("store_favicon_url", ""),
             "storefront_template": DEMO_STORE_SETTINGS.get("storefront_template", "sports"),
             "multilingual_enabled": DEMO_STORE_SETTINGS.get("multilingual_enabled", False),
             "default_locale": DEMO_STORE_SETTINGS.get("default_locale", "es"),
@@ -412,6 +415,8 @@ class StoreSettingsService(BaseService):
             data["store_url"] = data["store_url"].strip()
         if "store_logo_url" in data and data["store_logo_url"] is not None:
             data["store_logo_url"] = data["store_logo_url"].strip()
+        if "store_favicon_url" in data and data["store_favicon_url"] is not None:
+            data["store_favicon_url"] = data["store_favicon_url"].strip()
         if "storefront_template" in data and data["storefront_template"] is not None:
             template_id = data["storefront_template"].strip().lower()
             if not CustomStorefrontTemplateService.is_allowed_template_id(

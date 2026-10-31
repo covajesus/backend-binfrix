@@ -121,6 +121,13 @@ def ensure_store_settings_columns() -> list[str]:
                 "ALTER TABLE store_settings ADD COLUMN store_logo_url TEXT NULL",
             )
         )
+    if "store_favicon_url" not in cols:
+        pending.append(
+            (
+                "store_favicon_url",
+                "ALTER TABLE store_settings ADD COLUMN store_favicon_url TEXT NULL",
+            )
+        )
     if "theme_colors" not in cols:
         pending.append(
             (

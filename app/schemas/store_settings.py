@@ -48,6 +48,7 @@ class StoreSettingsUpdate(BaseModel):
     contact_email: str | None = None
     store_url: str | None = None
     store_logo_url: str | None = None
+    store_favicon_url: str | None = None
     storefront_template: str | None = None
     multilingual_enabled: bool | None = None
     default_locale: str | None = None
@@ -107,6 +108,7 @@ class StoreSettingsOut(BaseModel):
     contact_email: str
     store_url: str
     store_logo_url: str
+    store_favicon_url: str = ""
     storefront_template: str
     multilingual_enabled: bool
     default_locale: str
@@ -153,6 +155,7 @@ class StoreSettingsPublicOut(BaseModel):
     contact_email: str
     store_url: str
     store_logo_url: str
+    store_favicon_url: str = ""
     storefront_template: str
     multilingual_enabled: bool
     default_locale: str
