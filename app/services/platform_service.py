@@ -11,6 +11,7 @@ from app.schemas.license import LicenseCreate, LicenseOut, LicenseUpdate, Platfo
 from app.schemas.platform_user import PlatformUserOut, PlatformUserRoleUpdate
 from app.schemas.product import ProductOut
 from app.services.base import BaseService
+from app.utils.license_billing import ensure_free_monthly_license
 from app.utils.licenses import is_tenant_license_active
 
 
@@ -129,7 +130,12 @@ class ProductService(BaseService):
             .filter(TenantLicense.tenant_id == self.tenant_id)
             .all()
         )
-        return {row.platform_product_id: row for row in rows}
+        renewed: dict[str, TenantLicense] = {}
+        for row in rows:
+            renewed[row.platform_product_id] = (
+                ensure_free_monthly_license(self.db, row) or row
+            )
+        return renewed
 
     def _is_product_licensed(self, product_id: str, license_map: dict[str, TenantLicense]) -> bool:
         if self.user.is_superadmin:

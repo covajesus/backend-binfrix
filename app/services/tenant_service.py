@@ -15,6 +15,7 @@ from app.utils.license_plans import (
     STAFF_MEMBERSHIP_ROLE,
     max_users_for_plan,
 )
+from app.utils.license_billing import ensure_free_monthly_license
 from app.utils.licenses import is_tenant_license_active
 
 
@@ -74,7 +75,7 @@ class TenantService(BaseService):
         active_limits = [
             row.max_users or max_users_for_plan(row.plan)
             for row in licenses
-            if is_tenant_license_active(row)
+            if is_tenant_license_active(ensure_free_monthly_license(self.db, row))
         ]
         if not active_limits:
             return 1

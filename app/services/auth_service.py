@@ -29,7 +29,9 @@ from app.schemas.auth import (
 )
 from app.schemas.store_settings import StoreSettingsUpdate
 from app.services.base import BaseService
+from app.services.store_sample_service import StoreSampleService
 from app.services.store_settings_service import StoreSettingsService
+from app.utils.license_billing import initial_monthly_period
 from app.utils.license_plans import PLAN_FULL, PRINCIPAL_MEMBERSHIP_ROLE, max_users_for_plan
 from app.utils.slugs import slugify_store_name
 
@@ -217,23 +219,32 @@ class AuthService(BaseService):
                 role=PRINCIPAL_MEMBERSHIP_ROLE,
             )
         )
+        starts_at, ends_at = initial_monthly_period(date.today())
         self.db.add(
             TenantLicense(
                 tenant_id=tenant.id,
                 platform_product_id="ecommerce-b2c",
                 status="active",
                 plan=PLAN_FULL,
-                starts_at=date.today(),
-                ends_at=None,
+                starts_at=starts_at,
+                ends_at=ends_at,
                 max_users=max_users_for_plan(PLAN_FULL),
             )
         )
-        self.commit()
-        self.db.refresh(tenant)
+        self.db.flush()
 
+        store_url = f"https://{slug}.binfrix.io"
         settings = StoreSettingsService(self.db, tenant_id=tenant.id)
         settings.get_or_create(tenant.id)
-        settings.update_settings(StoreSettingsUpdate(store_url=f"https://{slug}.binfrix.io"))
+        settings.update_settings(StoreSettingsUpdate(store_url=store_url))
+        StoreSampleService(self.db).seed_new_store(
+            tenant.id,
+            store_name=name,
+            store_url=store_url,
+        )
+
+        self.commit()
+        self.db.refresh(tenant)
 
         return SetupStoreResponse(
             tenant=TenantSummary(

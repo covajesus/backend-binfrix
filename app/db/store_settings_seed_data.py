@@ -5,7 +5,7 @@ DEMO_STORE_SETTINGS = {
     "support_href": "/help",
     "contact_email": "contacto@binfrix.com",
     "store_url": "http://localhost:5174",
-    "store_logo_url": "",
+    "store_logo_url": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=512&h=512&q=80",
     "storefront_template": "lamora",
     "multilingual_enabled": False,
     "default_locale": "es",

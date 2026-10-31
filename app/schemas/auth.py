@@ -50,6 +50,14 @@ class TenantSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MeResponse(BaseModel):
+    """Authenticated session snapshot used to restore admin SPA state."""
+
+    user: UserOut
+    tenants: list[TenantSummary]
+    needs_store: bool = False
+
+
 class LoginResponse(BaseModel):
     token: str
     token_type: str = "bearer"

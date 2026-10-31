@@ -9,11 +9,11 @@ from app.schemas.auth import (
     GoogleAuthRequest,
     LoginRequest,
     LoginResponse,
+    MeResponse,
     MessageResponse,
     RegisterRequest,
     SetupStoreRequest,
     SetupStoreResponse,
-    UserOut,
 )
 from app.services.auth_service import AuthService
 
@@ -60,13 +60,19 @@ def setup_store(
         raise_http(exc)
 
 
-@router.get("/me", response_model=UserOut)
+@router.get("/me", response_model=MeResponse)
 def me(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> UserOut:
+) -> MeResponse:
     user = db.query(User).options(joinedload(User.role)).filter(User.id == user.id).first()
-    return serialize_user_out(user)
+    service = _service(db)
+    tenants = service._tenants_for(user)
+    return MeResponse(
+        user=serialize_user_out(user),
+        tenants=tenants,
+        needs_store=not user.is_superadmin and len(tenants) == 0,
+    )
 
 
 @router.post("/logout", response_model=MessageResponse)

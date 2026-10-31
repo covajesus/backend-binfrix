@@ -90,6 +90,9 @@ BROKEN_SLIDER_IMAGE_MARKERS = STALE_IMAGE_MARKERS
 
 IMAGE_PLACEHOLDER_THUMB = unsplash("photo-1515562141207-7a88fb7ce338", 160, 90)
 
+# Sample store logo for new tenants (square jewelry mark).
+STORE_LOGO_URL = unsplash("photo-1515562141207-7a88fb7ce338", 512, 512)
+
 
 def image_needs_repair(url: str) -> bool:
     text = (url or "").strip()

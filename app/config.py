@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     api_public_url: str = "http://localhost:8097"
     ecommerce_public_url: str = "http://localhost:5174"
     google_client_id: str = ""
+    # While True, monthly licenses auto-extend one calendar month at a time (free tier).
+    license_auto_renew_free: bool = True
 
     database_url: str = ""
 
