@@ -25,10 +25,16 @@ class Settings(BaseSettings):
         "http://localhost:5175,http://127.0.0.1:5175,"
         "http://localhost:5176,http://127.0.0.1:5176,"
         "https://binfrix.com,https://www.binfrix.com,"
-        "https://admin.binfrix.io,https://binfrix.io"
+        "https://admin.binfrix.io,https://binfrix.io,"
+        "https://tienda.binfrix.io,https://ecommerce.binfrix.io,"
+        "https://binfrix-ecommerce.firebaseapp.com,"
+        "https://binfrix-ecommerce.web.app"
     )
+    # Allows any https://*.binfrix.io storefront (wildcard subdomains).
+    cors_origin_regex: str = r"https://([a-z0-9-]+\.)*binfrix\.io"
     api_public_url: str = "http://localhost:8097"
     ecommerce_public_url: str = "http://localhost:5174"
+    google_client_id: str = ""
 
     database_url: str = ""
 

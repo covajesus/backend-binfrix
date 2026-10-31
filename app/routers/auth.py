@@ -1,75 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, serialize_user_out
-from app.core.security import create_access_token, verify_password
+from app.core.exceptions import AppError, raise_http
 from app.db.session import get_db
-from app.models.tenant import TenantMembership
 from app.models.user import User
-from app.schemas.auth import LoginRequest, LoginResponse, MessageResponse, TenantSummary, UserOut
+from app.schemas.auth import (
+    GoogleAuthRequest,
+    LoginRequest,
+    LoginResponse,
+    MessageResponse,
+    RegisterRequest,
+    SetupStoreRequest,
+    SetupStoreResponse,
+    UserOut,
+)
+from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _user_role(user: User, tenant_id: str | None, db: Session) -> str:
-    if user.is_superadmin:
-        return "admin"
-    if not tenant_id:
-        return "staff"
-    membership = (
-        db.query(TenantMembership)
-        .filter(TenantMembership.user_id == user.id, TenantMembership.tenant_id == tenant_id)
-        .first()
-    )
-    return membership.role if membership else "staff"
-
-
-def _user_tenants(user: User, db: Session) -> list[TenantSummary]:
-    if user.is_superadmin:
-        from app.models.tenant import Tenant
-
-        return [
-            TenantSummary(id=t.id, name=t.name, slug=t.slug, role="admin")
-            for t in db.query(Tenant).order_by(Tenant.name).all()
-        ]
-
-    memberships = (
-        db.query(TenantMembership)
-        .options(joinedload(TenantMembership.tenant))
-        .filter(TenantMembership.user_id == user.id)
-        .all()
-    )
-    result = []
-    for membership in memberships:
-        tenant = membership.tenant
-        result.append(
-            TenantSummary(id=tenant.id, name=tenant.name, slug=tenant.slug, role=membership.role)
-        )
-    return result
+def _service(db: Session) -> AuthService:
+    return AuthService(db)
 
 
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
-    user = (
-        db.query(User)
-        .options(joinedload(User.role))
-        .filter(User.email == payload.email)
-        .first()
-    )
-    if user is None or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
-        )
+    try:
+        return _service(db).login(payload)
+    except AppError as exc:
+        raise_http(exc)
 
-    token = create_access_token(user.id, user.email)
-    tenants = _user_tenants(user, db)
 
-    return LoginResponse(
-        token=token,
-        user=serialize_user_out(user),
-        tenants=tenants,
-    )
+@router.post("/register", response_model=LoginResponse, status_code=201)
+def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    try:
+        return _service(db).register(payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.post("/google", response_model=LoginResponse)
+def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    try:
+        return _service(db).google_login(payload)
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.post("/setup-store", response_model=SetupStoreResponse)
+def setup_store(
+    payload: SetupStoreRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SetupStoreResponse:
+    try:
+        return _service(db).setup_store(user, payload)
+    except AppError as exc:
+        raise_http(exc)
 
 
 @router.get("/me", response_model=UserOut)

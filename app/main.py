@@ -45,6 +45,8 @@ async def lifespan(_: FastAPI):
     logger.info("Iniciando API en puerto %s", settings.app_port)
     logger.info("MySQL %s:%s/%s", settings.mysql_host, settings.mysql_port, settings.mysql_database)
     logger.info("CORS origins (%d): %s", len(settings.cors_origin_list), settings.cors_origin_list)
+    if settings.cors_origin_regex.strip():
+        logger.info("CORS origin regex: %s", settings.cors_origin_regex)
 
     try:
         init_db()
@@ -67,9 +69,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_regex = settings.cors_origin_regex.strip() or None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
