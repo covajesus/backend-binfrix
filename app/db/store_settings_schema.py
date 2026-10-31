@@ -296,6 +296,14 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN billing_emitter_city VARCHAR(120) NOT NULL DEFAULT ''",
             )
         )
+    if "whatsapp_phone" not in cols:
+        pending.append(
+            (
+                "whatsapp_phone",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_phone VARCHAR(40) NOT NULL DEFAULT ''",
+            )
+        )
 
     if not pending:
         _migrate_legacy_webpay_columns(cols)

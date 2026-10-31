@@ -1,11 +1,14 @@
+from app.db.demo_assets import STORE_LOGO_URL
+
 DEMO_STORE_SETTINGS = {
     "phone": "+56 2 2345 6789",
+    "whatsapp_phone": "",
     "schedule": "Lun – Vie 9:00 – 18:00 hrs",
     "support_label": "Atención al cliente",
     "support_href": "/help",
     "contact_email": "contacto@binfrix.com",
     "store_url": "http://localhost:5174",
-    "store_logo_url": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=512&h=512&q=80",
+    "store_logo_url": STORE_LOGO_URL,
     "storefront_template": "lamora",
     "multilingual_enabled": False,
     "default_locale": "es",

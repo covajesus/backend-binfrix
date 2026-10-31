@@ -19,6 +19,7 @@ class StoreSettings(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id"), index=True)
     phone: Mapped[str] = mapped_column(String(40), default="")
+    whatsapp_phone: Mapped[str] = mapped_column(String(40), default="")
     schedule: Mapped[str] = mapped_column(String(120), default="")
     support_label: Mapped[str] = mapped_column(String(120), default="")
     support_href: Mapped[str] = mapped_column(String(255), default="/help")

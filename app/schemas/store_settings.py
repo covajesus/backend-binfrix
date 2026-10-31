@@ -28,6 +28,7 @@ class HeaderNavLink(BaseModel):
 
 class StoreSettingsUpdate(BaseModel):
     phone: str | None = None
+    whatsapp_phone: str | None = None
     schedule: str | None = None
     support_label: str | None = None
     support_href: str | None = None
@@ -69,6 +70,8 @@ class StoreSettingsUpdate(BaseModel):
 class StoreSettingsOut(BaseModel):
     phone: str
     phone_href: str
+    whatsapp_phone: str = ""
+    whatsapp_href: str = ""
     schedule: str
     support_label: str
     support_href: str
@@ -113,6 +116,8 @@ class StoreSettingsOut(BaseModel):
 class StoreSettingsPublicOut(BaseModel):
     phone: str
     phone_href: str
+    whatsapp_phone: str = ""
+    whatsapp_href: str = ""
     schedule: str
     support_label: str
     support_href: str

@@ -43,6 +43,18 @@ def _phone_href(phone: str) -> str:
     return f"tel:{digits}" if digits else ""
 
 
+def _whatsapp_digits(phone: str) -> str:
+    """International digits only for wa.me links (no leading +)."""
+    return re.sub(r"\D", "", phone or "")
+
+
+def _whatsapp_href(phone: str) -> str:
+    digits = _whatsapp_digits(phone)
+    if not digits:
+        return ""
+    return f"https://wa.me/{digits}"
+
+
 def _link_value(link, key: str, default: str | bool = "") -> str | bool:
     if isinstance(link, dict):
         return link.get(key, default)
@@ -123,9 +135,12 @@ def _active_template(template_id: str | None) -> str:
 def _to_out(row: StoreSettings) -> StoreSettingsOut:
     defaults = DEMO_STORE_SETTINGS
     template_id = _active_template(row.storefront_template)
+    whatsapp = getattr(row, "whatsapp_phone", None) or ""
     return StoreSettingsOut(
         phone=row.phone or "",
         phone_href=_phone_href(row.phone),
+        whatsapp_phone=whatsapp,
+        whatsapp_href=_whatsapp_href(whatsapp),
         schedule=row.schedule or "",
         support_label=row.support_label or "",
         support_href=row.support_href or "/help",
@@ -173,6 +188,8 @@ def _to_public_out(row: StoreSettings) -> StoreSettingsPublicOut:
     return StoreSettingsPublicOut(
         phone=admin.phone,
         phone_href=admin.phone_href,
+        whatsapp_phone=admin.whatsapp_phone,
+        whatsapp_href=admin.whatsapp_href,
         schedule=admin.schedule,
         support_label=admin.support_label,
         support_href=admin.support_href,
@@ -205,12 +222,15 @@ class StoreSettingsService(BaseService):
     def _defaults(self) -> dict:
         return {
             "phone": DEMO_STORE_SETTINGS["phone"],
+            "whatsapp_phone": DEMO_STORE_SETTINGS.get("whatsapp_phone", ""),
             "schedule": DEMO_STORE_SETTINGS["schedule"],
             "support_label": DEMO_STORE_SETTINGS["support_label"],
             "support_href": DEMO_STORE_SETTINGS["support_href"],
             "contact_email": DEMO_STORE_SETTINGS["contact_email"],
             "store_url": DEMO_STORE_SETTINGS["store_url"],
-            "store_logo_url": DEMO_STORE_SETTINGS.get("store_logo_url", ""),
+            "store_logo_url": DEMO_STORE_SETTINGS.get(
+                "store_logo_url", "https://binfrix.io/logo.png"
+            ),
             "storefront_template": DEMO_STORE_SETTINGS.get("storefront_template", "sports"),
             "multilingual_enabled": DEMO_STORE_SETTINGS.get("multilingual_enabled", False),
             "default_locale": DEMO_STORE_SETTINGS.get("default_locale", "es"),
@@ -265,6 +285,8 @@ class StoreSettingsService(BaseService):
         data = payload.model_dump(exclude_unset=True)
         if "phone" in data and data["phone"] is not None:
             data["phone"] = data["phone"].strip()
+        if "whatsapp_phone" in data and data["whatsapp_phone"] is not None:
+            data["whatsapp_phone"] = data["whatsapp_phone"].strip()
         if "schedule" in data and data["schedule"] is not None:
             data["schedule"] = data["schedule"].strip()
         if "support_label" in data and data["support_label"] is not None:
