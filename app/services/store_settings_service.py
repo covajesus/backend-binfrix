@@ -55,6 +55,21 @@ def _whatsapp_href(phone: str) -> str:
     return f"https://wa.me/{digits}"
 
 
+def _whatsapp_token_configured(row: StoreSettings) -> bool:
+    return bool((getattr(row, "whatsapp_meta_access_token", None) or "").strip())
+
+
+def _whatsapp_catalog_ready(row: StoreSettings) -> bool:
+    """True when Meta catalog credentials are complete enough to sync later."""
+    return bool(
+        getattr(row, "whatsapp_catalog_enabled", False)
+        and (getattr(row, "whatsapp_waba_id", None) or "").strip()
+        and (getattr(row, "whatsapp_phone_number_id", None) or "").strip()
+        and (getattr(row, "whatsapp_catalog_id", None) or "").strip()
+        and _whatsapp_token_configured(row)
+    )
+
+
 def _link_value(link, key: str, default: str | bool = "") -> str | bool:
     if isinstance(link, dict):
         return link.get(key, default)
@@ -136,11 +151,18 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
     defaults = DEMO_STORE_SETTINGS
     template_id = _active_template(row.storefront_template)
     whatsapp = getattr(row, "whatsapp_phone", None) or ""
+    token_ok = _whatsapp_token_configured(row)
     return StoreSettingsOut(
         phone=row.phone or "",
         phone_href=_phone_href(row.phone),
         whatsapp_phone=whatsapp,
         whatsapp_href=_whatsapp_href(whatsapp),
+        whatsapp_catalog_enabled=bool(getattr(row, "whatsapp_catalog_enabled", False)),
+        whatsapp_waba_id=(getattr(row, "whatsapp_waba_id", None) or "").strip(),
+        whatsapp_phone_number_id=(getattr(row, "whatsapp_phone_number_id", None) or "").strip(),
+        whatsapp_catalog_id=(getattr(row, "whatsapp_catalog_id", None) or "").strip(),
+        whatsapp_meta_access_token_configured=token_ok,
+        whatsapp_catalog_ready=_whatsapp_catalog_ready(row),
         schedule=row.schedule or "",
         support_label=row.support_label or "",
         support_href=row.support_href or "/help",
@@ -223,6 +245,17 @@ class StoreSettingsService(BaseService):
         return {
             "phone": DEMO_STORE_SETTINGS["phone"],
             "whatsapp_phone": DEMO_STORE_SETTINGS.get("whatsapp_phone", ""),
+            "whatsapp_catalog_enabled": bool(
+                DEMO_STORE_SETTINGS.get("whatsapp_catalog_enabled", False)
+            ),
+            "whatsapp_waba_id": DEMO_STORE_SETTINGS.get("whatsapp_waba_id", ""),
+            "whatsapp_phone_number_id": DEMO_STORE_SETTINGS.get(
+                "whatsapp_phone_number_id", ""
+            ),
+            "whatsapp_catalog_id": DEMO_STORE_SETTINGS.get("whatsapp_catalog_id", ""),
+            "whatsapp_meta_access_token": DEMO_STORE_SETTINGS.get(
+                "whatsapp_meta_access_token", ""
+            ),
             "schedule": DEMO_STORE_SETTINGS["schedule"],
             "support_label": DEMO_STORE_SETTINGS["support_label"],
             "support_href": DEMO_STORE_SETTINGS["support_href"],
@@ -287,6 +320,19 @@ class StoreSettingsService(BaseService):
             data["phone"] = data["phone"].strip()
         if "whatsapp_phone" in data and data["whatsapp_phone"] is not None:
             data["whatsapp_phone"] = data["whatsapp_phone"].strip()
+        if "whatsapp_catalog_enabled" in data and data["whatsapp_catalog_enabled"] is not None:
+            data["whatsapp_catalog_enabled"] = bool(data["whatsapp_catalog_enabled"])
+        for wa_field in (
+            "whatsapp_waba_id",
+            "whatsapp_phone_number_id",
+            "whatsapp_catalog_id",
+        ):
+            if wa_field in data and data[wa_field] is not None:
+                data[wa_field] = str(data[wa_field]).strip()
+        if "whatsapp_meta_access_token" in data:
+            token = (data.pop("whatsapp_meta_access_token") or "").strip()
+            if token:
+                row.whatsapp_meta_access_token = token
         if "schedule" in data and data["schedule"] is not None:
             data["schedule"] = data["schedule"].strip()
         if "support_label" in data and data["support_label"] is not None:

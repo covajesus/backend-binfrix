@@ -29,6 +29,11 @@ class HeaderNavLink(BaseModel):
 class StoreSettingsUpdate(BaseModel):
     phone: str | None = None
     whatsapp_phone: str | None = None
+    whatsapp_catalog_enabled: bool | None = None
+    whatsapp_waba_id: str | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_catalog_id: str | None = None
+    whatsapp_meta_access_token: str | None = None
     schedule: str | None = None
     support_label: str | None = None
     support_href: str | None = None
@@ -72,6 +77,12 @@ class StoreSettingsOut(BaseModel):
     phone_href: str
     whatsapp_phone: str = ""
     whatsapp_href: str = ""
+    whatsapp_catalog_enabled: bool = False
+    whatsapp_waba_id: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_catalog_id: str = ""
+    whatsapp_meta_access_token_configured: bool = False
+    whatsapp_catalog_ready: bool = False
     schedule: str
     support_label: str
     support_href: str

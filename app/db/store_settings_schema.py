@@ -304,6 +304,46 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN whatsapp_phone VARCHAR(40) NOT NULL DEFAULT ''",
             )
         )
+    if "whatsapp_catalog_enabled" not in cols:
+        pending.append(
+            (
+                "whatsapp_catalog_enabled",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_catalog_enabled TINYINT(1) NOT NULL DEFAULT 0",
+            )
+        )
+    if "whatsapp_waba_id" not in cols:
+        pending.append(
+            (
+                "whatsapp_waba_id",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_waba_id VARCHAR(64) NOT NULL DEFAULT ''",
+            )
+        )
+    if "whatsapp_phone_number_id" not in cols:
+        pending.append(
+            (
+                "whatsapp_phone_number_id",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_phone_number_id VARCHAR(64) NOT NULL DEFAULT ''",
+            )
+        )
+    if "whatsapp_catalog_id" not in cols:
+        pending.append(
+            (
+                "whatsapp_catalog_id",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_catalog_id VARCHAR(64) NOT NULL DEFAULT ''",
+            )
+        )
+    if "whatsapp_meta_access_token" not in cols:
+        pending.append(
+            (
+                "whatsapp_meta_access_token",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN whatsapp_meta_access_token TEXT NULL",
+            )
+        )
 
     if not pending:
         _migrate_legacy_webpay_columns(cols)

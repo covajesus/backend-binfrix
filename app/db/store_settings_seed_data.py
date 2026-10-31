@@ -3,6 +3,11 @@ from app.db.demo_assets import STORE_LOGO_URL
 DEMO_STORE_SETTINGS = {
     "phone": "+56 2 2345 6789",
     "whatsapp_phone": "",
+    "whatsapp_catalog_enabled": False,
+    "whatsapp_waba_id": "",
+    "whatsapp_phone_number_id": "",
+    "whatsapp_catalog_id": "",
+    "whatsapp_meta_access_token": "",
     "schedule": "Lun – Vie 9:00 – 18:00 hrs",
     "support_label": "Atención al cliente",
     "support_href": "/help",
