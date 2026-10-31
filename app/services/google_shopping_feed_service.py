@@ -1,7 +1,7 @@
-"""Build Google Merchant Center product feeds from the store catalog.
+"""Build product feeds (Google Merchant / Meta Commerce) from the store catalog.
 
-Merchant Center schedules a fetch of the public XML URL; each active catalog
-product is included automatically (no per-product push required for the feed).
+Merchant Center and Meta Commerce Manager schedule a fetch of the public XML URL;
+each active catalog product with an image is included automatically.
 """
 
 from __future__ import annotations
@@ -16,6 +16,9 @@ from app.models.catalog import CatalogProduct
 from app.models.store_settings import StoreSettings
 from app.models.tenant import Tenant
 from app.services.base import BaseService
+
+FEED_GOOGLE = "google"
+FEED_META = "meta"
 
 
 def _xml_text(value: str) -> str:
@@ -35,12 +38,11 @@ def _first_image(images) -> str:
 
 def _money(amount: int, currency: str) -> str:
     currency = (currency or "CLP").upper()
-    # Catalog prices are stored as whole major units (e.g. CLP pesos).
     return f"{int(amount or 0)} {currency}"
 
 
 class GoogleShoppingFeedService(BaseService):
-    """Generate Google Shopping RSS XML for a tenant storefront."""
+    """Generate Google Shopping / Meta Commerce RSS XML for a tenant storefront."""
 
     def __init__(self, db: Session):
         super().__init__(db)
@@ -62,15 +64,26 @@ class GoogleShoppingFeedService(BaseService):
             .first()
         )
 
-    def feed_url_for_slug(self, slug: str) -> str:
+    def feed_url_for_slug(self, slug: str, channel: str = FEED_GOOGLE) -> str:
         base = get_settings().api_public_url.rstrip("/")
+        if channel == FEED_META:
+            return f"{base}/api/v1/store/{slug}/feeds/meta-catalog.xml"
         return f"{base}/api/v1/store/{slug}/feeds/google-shopping.xml"
 
-    def build_xml(self, tenant_slug: str) -> str:
+    def build_xml(self, tenant_slug: str, channel: str = FEED_GOOGLE) -> str:
         tenant = self._tenant(tenant_slug)
         row = self._settings_row(tenant.id)
-        if row is None or not bool(getattr(row, "google_shopping_enabled", False)):
-            raise AppError("Google Shopping feed is not enabled for this store", 404)
+        if row is None:
+            raise AppError("Store settings not found", 404)
+
+        if channel == FEED_META:
+            if not bool(getattr(row, "facebook_catalog_enabled", False)):
+                raise AppError("Facebook/Instagram catalog feed is not enabled", 404)
+            channel_label = "Meta Commerce (Facebook / Instagram)"
+        else:
+            if not bool(getattr(row, "google_shopping_enabled", False)):
+                raise AppError("Google Shopping feed is not enabled for this store", 404)
+            channel_label = "Google Shopping"
 
         store_url = (row.store_url or "").strip().rstrip("/")
         if not store_url:
@@ -97,7 +110,7 @@ class GoogleShoppingFeedService(BaseService):
 
         title = _xml_text(f"{tenant.name or tenant.slug} products")
         link = _xml_text(store_url)
-        description = _xml_text(f"Google Shopping feed for {tenant.name or tenant.slug}")
+        description = _xml_text(f"{channel_label} feed for {tenant.name or tenant.slug}")
 
         items: list[str] = []
         for product in products:
@@ -109,39 +122,35 @@ class GoogleShoppingFeedService(BaseService):
                 continue
             product_link = f"{store_url}/product/{product.id}"
             availability = "in_stock" if int(product.stock or 0) > 0 else "out_of_stock"
-            desc = (product.description or product.title or "").strip()
-            # Google requires non-empty description.
-            if not desc:
-                desc = product.title
+            desc = (product.description or product.title or "").strip() or product.title
             product_type = (product.category or "").strip()
 
-            items.append(
-                "\n".join(
-                    [
-                        "    <item>",
-                        f"      <g:id>{_xml_text(offer_id)}</g:id>",
-                        f"      <g:title>{_xml_text(product.title)}</g:title>",
-                        f"      <g:description>{_xml_text(desc)}</g:description>",
-                        f"      <g:link>{_xml_text(product_link)}</g:link>",
-                        f"      <g:image_link>{_xml_text(image)}</g:image_link>",
-                        f"      <g:availability>{availability}</g:availability>",
-                        f"      <g:price>{_money(product.price, currency)}</g:price>",
-                        f"      <g:condition>new</g:condition>",
-                        f"      <g:brand>{_xml_text(brand)}</g:brand>",
-                        f"      <g:identifier_exists>false</g:identifier_exists>",
-                        f"      <g:adult>no</g:adult>",
-                        (
-                            f"      <g:product_type>{_xml_text(product_type)}</g:product_type>"
-                            if product_type
-                            else ""
-                        ),
-                        f"      <!-- target {country}/{language} -->",
-                        "    </item>",
-                    ]
+            item_lines = [
+                "    <item>",
+                f"      <g:id>{_xml_text(offer_id)}</g:id>",
+                f"      <title>{_xml_text(product.title)}</title>",
+                f"      <g:title>{_xml_text(product.title)}</g:title>",
+                f"      <description>{_xml_text(desc)}</description>",
+                f"      <g:description>{_xml_text(desc)}</g:description>",
+                f"      <link>{_xml_text(product_link)}</link>",
+                f"      <g:link>{_xml_text(product_link)}</g:link>",
+                f"      <g:image_link>{_xml_text(image)}</g:image_link>",
+                f"      <g:availability>{availability}</g:availability>",
+                f"      <g:price>{_money(product.price, currency)}</g:price>",
+                f"      <g:condition>new</g:condition>",
+                f"      <g:brand>{_xml_text(brand)}</g:brand>",
+                f"      <g:identifier_exists>false</g:identifier_exists>",
+                f"      <g:adult>no</g:adult>",
+            ]
+            if product_type:
+                item_lines.append(
+                    f"      <g:product_type>{_xml_text(product_type)}</g:product_type>"
                 )
-            )
+            item_lines.append(f"      <!-- target {country}/{language} -->")
+            item_lines.append("    </item>")
+            items.append("\n".join(item_lines))
 
-        body = "\n".join(line for line in items if line.strip())
+        body = "\n".join(items)
         return (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n'

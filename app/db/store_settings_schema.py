@@ -384,6 +384,30 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN google_shopping_brand VARCHAR(120) NOT NULL DEFAULT ''",
             )
         )
+    if "facebook_catalog_enabled" not in cols:
+        pending.append(
+            (
+                "facebook_catalog_enabled",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN facebook_catalog_enabled TINYINT(1) NOT NULL DEFAULT 0",
+            )
+        )
+    if "facebook_page_id" not in cols:
+        pending.append(
+            (
+                "facebook_page_id",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN facebook_page_id VARCHAR(64) NOT NULL DEFAULT ''",
+            )
+        )
+    if "instagram_shopping_enabled" not in cols:
+        pending.append(
+            (
+                "instagram_shopping_enabled",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN instagram_shopping_enabled TINYINT(1) NOT NULL DEFAULT 0",
+            )
+        )
 
     if not pending:
         _migrate_legacy_webpay_columns(cols)

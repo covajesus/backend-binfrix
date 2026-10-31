@@ -7,7 +7,11 @@ from app.db.store_settings_seed_data import DEMO_STORE_SETTINGS
 from app.models.store_settings import StoreSettings
 from app.models.tenant import Tenant
 from app.repositories.base import BaseRepository
-from app.services.google_shopping_feed_service import GoogleShoppingFeedService
+from app.services.google_shopping_feed_service import (
+    FEED_GOOGLE,
+    FEED_META,
+    GoogleShoppingFeedService,
+)
 from app.schemas.store_settings import (
     ALLOWED_BILLING_COUNTRIES,
     ALLOWED_LOCALES,
@@ -174,6 +178,10 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
         or "CLP",
         google_shopping_brand=(getattr(row, "google_shopping_brand", None) or "").strip(),
         google_shopping_feed_url="",
+        facebook_catalog_enabled=bool(getattr(row, "facebook_catalog_enabled", False)),
+        facebook_page_id=(getattr(row, "facebook_page_id", None) or "").strip(),
+        instagram_shopping_enabled=bool(getattr(row, "instagram_shopping_enabled", False)),
+        meta_catalog_feed_url="",
         schedule=row.schedule or "",
         support_label=row.support_label or "",
         support_href=row.support_href or "/help",
@@ -280,6 +288,13 @@ class StoreSettingsService(BaseService):
                 "google_shopping_currency", "CLP"
             ),
             "google_shopping_brand": DEMO_STORE_SETTINGS.get("google_shopping_brand", ""),
+            "facebook_catalog_enabled": bool(
+                DEMO_STORE_SETTINGS.get("facebook_catalog_enabled", False)
+            ),
+            "facebook_page_id": DEMO_STORE_SETTINGS.get("facebook_page_id", ""),
+            "instagram_shopping_enabled": bool(
+                DEMO_STORE_SETTINGS.get("instagram_shopping_enabled", False)
+            ),
             "schedule": DEMO_STORE_SETTINGS["schedule"],
             "support_label": DEMO_STORE_SETTINGS["support_label"],
             "support_href": DEMO_STORE_SETTINGS["support_href"],
@@ -308,8 +323,13 @@ class StoreSettingsService(BaseService):
         tenant = self.db.get(Tenant, tenant_id)
         if tenant is None or not tenant.slug:
             return out
-        feed_url = GoogleShoppingFeedService(self.db).feed_url_for_slug(tenant.slug)
-        return out.model_copy(update={"google_shopping_feed_url": feed_url})
+        feeds = GoogleShoppingFeedService(self.db)
+        return out.model_copy(
+            update={
+                "google_shopping_feed_url": feeds.feed_url_for_slug(tenant.slug, FEED_GOOGLE),
+                "meta_catalog_feed_url": feeds.feed_url_for_slug(tenant.slug, FEED_META),
+            }
+        )
 
     def get_or_create(self, tenant_id: str) -> StoreSettingsOut:
         row = self._get_row(tenant_id)
@@ -374,6 +394,12 @@ class StoreSettingsService(BaseService):
             data["google_shopping_currency"] = data["google_shopping_currency"].strip().upper() or "CLP"
         if "google_shopping_brand" in data and data["google_shopping_brand"] is not None:
             data["google_shopping_brand"] = data["google_shopping_brand"].strip()
+        if "facebook_catalog_enabled" in data and data["facebook_catalog_enabled"] is not None:
+            data["facebook_catalog_enabled"] = bool(data["facebook_catalog_enabled"])
+        if "facebook_page_id" in data and data["facebook_page_id"] is not None:
+            data["facebook_page_id"] = str(data["facebook_page_id"]).strip()
+        if "instagram_shopping_enabled" in data and data["instagram_shopping_enabled"] is not None:
+            data["instagram_shopping_enabled"] = bool(data["instagram_shopping_enabled"])
         if "schedule" in data and data["schedule"] is not None:
             data["schedule"] = data["schedule"].strip()
         if "support_label" in data and data["support_label"] is not None:

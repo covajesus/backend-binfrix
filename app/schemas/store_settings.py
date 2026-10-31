@@ -39,6 +39,9 @@ class StoreSettingsUpdate(BaseModel):
     google_shopping_language: str | None = None
     google_shopping_currency: str | None = None
     google_shopping_brand: str | None = None
+    facebook_catalog_enabled: bool | None = None
+    facebook_page_id: str | None = None
+    instagram_shopping_enabled: bool | None = None
     schedule: str | None = None
     support_label: str | None = None
     support_href: str | None = None
@@ -94,6 +97,10 @@ class StoreSettingsOut(BaseModel):
     google_shopping_currency: str = "CLP"
     google_shopping_brand: str = ""
     google_shopping_feed_url: str = ""
+    facebook_catalog_enabled: bool = False
+    facebook_page_id: str = ""
+    instagram_shopping_enabled: bool = False
+    meta_catalog_feed_url: str = ""
     schedule: str
     support_label: str
     support_href: str

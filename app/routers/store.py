@@ -91,9 +91,27 @@ def store_settings(tenant_slug: str, db: Session = Depends(get_db)) -> StoreSett
 def store_google_shopping_feed(tenant_slug: str, db: Session = Depends(get_db)) -> Response:
     """Public product feed for Google Merchant Center scheduled fetch."""
     try:
-        from app.services.google_shopping_feed_service import GoogleShoppingFeedService
+        from app.services.google_shopping_feed_service import (
+            FEED_GOOGLE,
+            GoogleShoppingFeedService,
+        )
 
-        xml = GoogleShoppingFeedService(db).build_xml(tenant_slug)
+        xml = GoogleShoppingFeedService(db).build_xml(tenant_slug, FEED_GOOGLE)
+        return Response(content=xml, media_type="application/xml; charset=utf-8")
+    except AppError as exc:
+        raise_http(exc)
+
+
+@router.get("/{tenant_slug}/feeds/meta-catalog.xml")
+def store_meta_catalog_feed(tenant_slug: str, db: Session = Depends(get_db)) -> Response:
+    """Public product feed for Meta Commerce (Facebook Page + Instagram Shopping)."""
+    try:
+        from app.services.google_shopping_feed_service import (
+            FEED_META,
+            GoogleShoppingFeedService,
+        )
+
+        xml = GoogleShoppingFeedService(db).build_xml(tenant_slug, FEED_META)
         return Response(content=xml, media_type="application/xml; charset=utf-8")
     except AppError as exc:
         raise_http(exc)
