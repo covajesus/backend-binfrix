@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError
 from app.db.store_settings_seed_data import DEMO_STORE_SETTINGS
 from app.models.store_settings import StoreSettings
+from app.models.tenant import Tenant
 from app.repositories.base import BaseRepository
+from app.services.google_shopping_feed_service import GoogleShoppingFeedService
 from app.schemas.store_settings import (
     ALLOWED_BILLING_COUNTRIES,
     ALLOWED_LOCALES,
@@ -163,6 +165,15 @@ def _to_out(row: StoreSettings) -> StoreSettingsOut:
         whatsapp_catalog_id=(getattr(row, "whatsapp_catalog_id", None) or "").strip(),
         whatsapp_meta_access_token_configured=token_ok,
         whatsapp_catalog_ready=_whatsapp_catalog_ready(row),
+        google_shopping_enabled=bool(getattr(row, "google_shopping_enabled", False)),
+        google_shopping_country=(getattr(row, "google_shopping_country", None) or "CL").strip().upper()
+        or "CL",
+        google_shopping_language=(getattr(row, "google_shopping_language", None) or "es").strip().lower()
+        or "es",
+        google_shopping_currency=(getattr(row, "google_shopping_currency", None) or "CLP").strip().upper()
+        or "CLP",
+        google_shopping_brand=(getattr(row, "google_shopping_brand", None) or "").strip(),
+        google_shopping_feed_url="",
         schedule=row.schedule or "",
         support_label=row.support_label or "",
         support_href=row.support_href or "/help",
@@ -256,6 +267,19 @@ class StoreSettingsService(BaseService):
             "whatsapp_meta_access_token": DEMO_STORE_SETTINGS.get(
                 "whatsapp_meta_access_token", ""
             ),
+            "google_shopping_enabled": bool(
+                DEMO_STORE_SETTINGS.get("google_shopping_enabled", False)
+            ),
+            "google_shopping_country": DEMO_STORE_SETTINGS.get(
+                "google_shopping_country", "CL"
+            ),
+            "google_shopping_language": DEMO_STORE_SETTINGS.get(
+                "google_shopping_language", "es"
+            ),
+            "google_shopping_currency": DEMO_STORE_SETTINGS.get(
+                "google_shopping_currency", "CLP"
+            ),
+            "google_shopping_brand": DEMO_STORE_SETTINGS.get("google_shopping_brand", ""),
             "schedule": DEMO_STORE_SETTINGS["schedule"],
             "support_label": DEMO_STORE_SETTINGS["support_label"],
             "support_href": DEMO_STORE_SETTINGS["support_href"],
@@ -280,6 +304,13 @@ class StoreSettingsService(BaseService):
     def _get_row(self, tenant_id: str) -> StoreSettings | None:
         return StoreSettingsRepository(self.db, tenant_id=tenant_id).get_row()
 
+    def _with_feed_url(self, tenant_id: str, out: StoreSettingsOut) -> StoreSettingsOut:
+        tenant = self.db.get(Tenant, tenant_id)
+        if tenant is None or not tenant.slug:
+            return out
+        feed_url = GoogleShoppingFeedService(self.db).feed_url_for_slug(tenant.slug)
+        return out.model_copy(update={"google_shopping_feed_url": feed_url})
+
     def get_or_create(self, tenant_id: str) -> StoreSettingsOut:
         row = self._get_row(tenant_id)
         if row is None:
@@ -288,7 +319,7 @@ class StoreSettingsService(BaseService):
             self.db.add(row)
             self.commit()
             row = self._get_row(tenant_id)
-        return _to_out(row)
+        return self._with_feed_url(tenant_id, _to_out(row))
 
     def get_or_create_public(self, tenant_id: str) -> StoreSettingsPublicOut:
         row = self._get_row(tenant_id)
@@ -333,6 +364,16 @@ class StoreSettingsService(BaseService):
             token = (data.pop("whatsapp_meta_access_token") or "").strip()
             if token:
                 row.whatsapp_meta_access_token = token
+        if "google_shopping_enabled" in data and data["google_shopping_enabled"] is not None:
+            data["google_shopping_enabled"] = bool(data["google_shopping_enabled"])
+        if "google_shopping_country" in data and data["google_shopping_country"] is not None:
+            data["google_shopping_country"] = data["google_shopping_country"].strip().upper() or "CL"
+        if "google_shopping_language" in data and data["google_shopping_language"] is not None:
+            data["google_shopping_language"] = data["google_shopping_language"].strip().lower() or "es"
+        if "google_shopping_currency" in data and data["google_shopping_currency"] is not None:
+            data["google_shopping_currency"] = data["google_shopping_currency"].strip().upper() or "CLP"
+        if "google_shopping_brand" in data and data["google_shopping_brand"] is not None:
+            data["google_shopping_brand"] = data["google_shopping_brand"].strip()
         if "schedule" in data and data["schedule"] is not None:
             data["schedule"] = data["schedule"].strip()
         if "support_label" in data and data["support_label"] is not None:
@@ -445,4 +486,4 @@ class StoreSettingsService(BaseService):
 
         self.commit()
         self.db.refresh(row)
-        return _to_out(row)
+        return self._with_feed_url(self.tenant_id, _to_out(row))

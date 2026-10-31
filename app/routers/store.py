@@ -87,6 +87,18 @@ def store_settings(tenant_slug: str, db: Session = Depends(get_db)) -> StoreSett
         raise_http(exc)
 
 
+@router.get("/{tenant_slug}/feeds/google-shopping.xml")
+def store_google_shopping_feed(tenant_slug: str, db: Session = Depends(get_db)) -> Response:
+    """Public product feed for Google Merchant Center scheduled fetch."""
+    try:
+        from app.services.google_shopping_feed_service import GoogleShoppingFeedService
+
+        xml = GoogleShoppingFeedService(db).build_xml(tenant_slug)
+        return Response(content=xml, media_type="application/xml; charset=utf-8")
+    except AppError as exc:
+        raise_http(exc)
+
+
 @router.get(
     "/{tenant_slug}/storefront-templates",
     response_model=list[CustomStorefrontTemplatePublicOut],

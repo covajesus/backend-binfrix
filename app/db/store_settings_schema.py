@@ -344,6 +344,46 @@ def ensure_store_settings_columns() -> list[str]:
                 "ADD COLUMN whatsapp_meta_access_token TEXT NULL",
             )
         )
+    if "google_shopping_enabled" not in cols:
+        pending.append(
+            (
+                "google_shopping_enabled",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN google_shopping_enabled TINYINT(1) NOT NULL DEFAULT 0",
+            )
+        )
+    if "google_shopping_country" not in cols:
+        pending.append(
+            (
+                "google_shopping_country",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN google_shopping_country VARCHAR(5) NOT NULL DEFAULT 'CL'",
+            )
+        )
+    if "google_shopping_language" not in cols:
+        pending.append(
+            (
+                "google_shopping_language",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN google_shopping_language VARCHAR(5) NOT NULL DEFAULT 'es'",
+            )
+        )
+    if "google_shopping_currency" not in cols:
+        pending.append(
+            (
+                "google_shopping_currency",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN google_shopping_currency VARCHAR(5) NOT NULL DEFAULT 'CLP'",
+            )
+        )
+    if "google_shopping_brand" not in cols:
+        pending.append(
+            (
+                "google_shopping_brand",
+                "ALTER TABLE store_settings "
+                "ADD COLUMN google_shopping_brand VARCHAR(120) NOT NULL DEFAULT ''",
+            )
+        )
 
     if not pending:
         _migrate_legacy_webpay_columns(cols)

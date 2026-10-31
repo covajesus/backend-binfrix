@@ -34,6 +34,11 @@ class StoreSettingsUpdate(BaseModel):
     whatsapp_phone_number_id: str | None = None
     whatsapp_catalog_id: str | None = None
     whatsapp_meta_access_token: str | None = None
+    google_shopping_enabled: bool | None = None
+    google_shopping_country: str | None = None
+    google_shopping_language: str | None = None
+    google_shopping_currency: str | None = None
+    google_shopping_brand: str | None = None
     schedule: str | None = None
     support_label: str | None = None
     support_href: str | None = None
@@ -83,6 +88,12 @@ class StoreSettingsOut(BaseModel):
     whatsapp_catalog_id: str = ""
     whatsapp_meta_access_token_configured: bool = False
     whatsapp_catalog_ready: bool = False
+    google_shopping_enabled: bool = False
+    google_shopping_country: str = "CL"
+    google_shopping_language: str = "es"
+    google_shopping_currency: str = "CLP"
+    google_shopping_brand: str = ""
+    google_shopping_feed_url: str = ""
     schedule: str
     support_label: str
     support_href: str
